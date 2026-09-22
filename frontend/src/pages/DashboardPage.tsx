@@ -67,10 +67,10 @@ export function DashboardPage() {
           </div>
 
           <div className="space-y-1">
-            <div className="text-4xl sm:text-5xl font-extrabold tracking-tight">
+            <div className="text-3xl xs:text-4xl sm:text-5xl font-extrabold tracking-tight">
               {formatINR(MOCK_FINANCIAL_SUMMARY.safeToSpend)}
             </div>
-            <p className="text-sm font-medium text-blue-100/90 flex items-center gap-1.5">
+            <p className="text-xs sm:text-sm font-medium text-blue-100/90 flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping inline-block" />
               <span>{MOCK_FINANCIAL_SUMMARY.statusNote}</span>
             </p>
@@ -90,15 +90,15 @@ export function DashboardPage() {
       </div>
 
       {/* 3. Three Supporting Metric Cards */}
-      <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
+      <div className="grid grid-cols-3 gap-2 xs:gap-2.5 sm:gap-4">
         {/* Available Balance */}
-        <Card className="rounded-2xl border-border/80 p-3.5 sm:p-4 bg-card hover:border-primary/30 transition-all">
+        <Card className="rounded-2xl border-border/80 p-2.5 xs:p-3.5 sm:p-4 bg-card hover:border-primary/30 transition-all">
           <CardContent className="p-0 space-y-1">
-            <div className="flex items-center space-x-1.5 text-muted-foreground text-[11px] sm:text-xs font-medium truncate">
-              <Wallet className="h-3.5 w-3.5 text-primary shrink-0" />
+            <div className="flex items-center space-x-1 text-muted-foreground text-[10px] xs:text-[11px] sm:text-xs font-medium truncate">
+              <Wallet className="h-3 w-3 xs:h-3.5 xs:w-3.5 text-primary shrink-0" />
               <span className="truncate">Available</span>
             </div>
-            <p className="text-base sm:text-xl font-bold tracking-tight text-foreground truncate">
+            <p className="text-sm xs:text-base sm:text-xl font-bold tracking-tight text-foreground truncate">
               {formatINR(MOCK_FINANCIAL_SUMMARY.availableBalance)}
             </p>
             <p className="text-[10px] text-muted-foreground hidden xs:block truncate">Bank & UPI</p>
@@ -106,13 +106,13 @@ export function DashboardPage() {
         </Card>
 
         {/* Spent this month */}
-        <Card className="rounded-2xl border-border/80 p-3.5 sm:p-4 bg-card hover:border-primary/30 transition-all">
+        <Card className="rounded-2xl border-border/80 p-2.5 xs:p-3.5 sm:p-4 bg-card hover:border-primary/30 transition-all">
           <CardContent className="p-0 space-y-1">
-            <div className="flex items-center space-x-1.5 text-muted-foreground text-[11px] sm:text-xs font-medium truncate">
-              <CreditCard className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+            <div className="flex items-center space-x-1 text-muted-foreground text-[10px] xs:text-[11px] sm:text-xs font-medium truncate">
+              <CreditCard className="h-3 w-3 xs:h-3.5 xs:w-3.5 text-rose-500 shrink-0" />
               <span className="truncate">Spent</span>
             </div>
-            <p className="text-base sm:text-xl font-bold tracking-tight text-foreground truncate">
+            <p className="text-sm xs:text-base sm:text-xl font-bold tracking-tight text-foreground truncate">
               {formatINR(MOCK_FINANCIAL_SUMMARY.spentThisMonth)}
             </p>
             <p className="text-[10px] text-muted-foreground hidden xs:block truncate">This month</p>
@@ -120,13 +120,13 @@ export function DashboardPage() {
         </Card>
 
         {/* Savings */}
-        <Card className="rounded-2xl border-border/80 p-3.5 sm:p-4 bg-card hover:border-primary/30 transition-all">
+        <Card className="rounded-2xl border-border/80 p-2.5 xs:p-3.5 sm:p-4 bg-card hover:border-primary/30 transition-all">
           <CardContent className="p-0 space-y-1">
-            <div className="flex items-center space-x-1.5 text-muted-foreground text-[11px] sm:text-xs font-medium truncate">
-              <PiggyBank className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+            <div className="flex items-center space-x-1 text-muted-foreground text-[10px] xs:text-[11px] sm:text-xs font-medium truncate">
+              <PiggyBank className="h-3 w-3 xs:h-3.5 xs:w-3.5 text-emerald-500 shrink-0" />
               <span className="truncate">Savings</span>
             </div>
-            <p className="text-base sm:text-xl font-bold tracking-tight text-foreground truncate">
+            <p className="text-sm xs:text-base sm:text-xl font-bold tracking-tight text-foreground truncate">
               {formatINR(MOCK_FINANCIAL_SUMMARY.savings)}
             </p>
             <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium hidden xs:block truncate">
