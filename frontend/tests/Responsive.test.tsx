@@ -1,13 +1,24 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { render, screen, within, waitFor } from '@testing-library/react'
 import { App } from '@/App'
+import { tokenStorage } from '@/services/authService'
+import { mockAuthenticatedUser } from './testUtils'
 
 describe('Responsive Shell & Mobile Navigation', () => {
-  it('renders mobile bottom navigation bar with 5 primary tabs', () => {
+  beforeEach(() => {
+    tokenStorage.clearToken()
+    vi.restoreAllMocks()
+    mockAuthenticatedUser()
+  })
+
+  it('renders mobile bottom navigation bar with 5 primary tabs', async () => {
     render(<App />)
 
+    await waitFor(() => {
+      expect(screen.getByRole('navigation', { name: /Mobile Navigation/i })).toBeInTheDocument()
+    })
+
     const mobileNav = screen.getByRole('navigation', { name: /Mobile Navigation/i })
-    expect(mobileNav).toBeInTheDocument()
 
     // Assert all 5 core navigation labels are present inside the mobile navigation
     expect(within(mobileNav).getByText('Home')).toBeInTheDocument()

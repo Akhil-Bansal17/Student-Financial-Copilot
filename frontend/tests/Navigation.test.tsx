@@ -1,13 +1,23 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import { App } from '@/App'
+import { tokenStorage } from '@/services/authService'
+import { mockAuthenticatedUser } from './testUtils'
 
 describe('Navigation and Routing', () => {
-  it('navigates to Activity, Insights, Goals, and More pages via navigation links', () => {
+  beforeEach(() => {
+    tokenStorage.clearToken()
+    vi.restoreAllMocks()
+    mockAuthenticatedUser()
+  })
+
+  it('navigates to Activity, Insights, Goals, and More pages via navigation links', async () => {
     render(<App />)
 
     // Initially on Home / Dashboard
-    expect(screen.getByText(/Safe to spend/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(/Safe to spend/i)).toBeInTheDocument()
+    })
 
     const main = screen.getByRole('main')
 

@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = "dev-secret-key-change-in-production-minimum-32-chars-long"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days in minutes (10080)
     
     # Database
     DATABASE_URL: str = "postgresql+psycopg2://copilot_user:copilot_secret@localhost:5432/student_financial_copilot"

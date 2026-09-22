@@ -1,4 +1,5 @@
 import { ApiErrorPayload } from '@/types'
+import { tokenStorage } from './authService'
 
 export class ApiError extends Error {
   public status: number
@@ -22,11 +23,16 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
   // In development, relative paths route through the Vite proxy to FastAPI backend
   const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
-  // If baseUrl is provided and starts with http, prepend it; otherwise use relative path for dev proxy
   const url = baseUrl.startsWith('http') ? `${baseUrl}${cleanEndpoint}` : cleanEndpoint
 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+  const token = tokenStorage.getToken()
+  const authHeaders: Record<string, string> = {}
+  if (token) {
+    authHeaders['Authorization'] = `Bearer ${token}`
+  }
 
   try {
     const response = await fetch(url, {
@@ -35,6 +41,7 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        ...authHeaders,
         ...fetchOptions.headers,
       },
     })
@@ -43,7 +50,11 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
       let errorData: ApiErrorPayload
       try {
         const json = await response.json()
-        errorData = json.error || { code: response.status, message: json.message || response.statusText }
+        errorData = json.error || {
+          code: response.status,
+          message: json.detail || json.message || response.statusText,
+          details: json.details,
+        }
       } catch {
         errorData = {
           code: response.status,

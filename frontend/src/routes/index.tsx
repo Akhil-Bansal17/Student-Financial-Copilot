@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppLayout } from '@/layouts/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { PublicRoute } from '@/components/auth/PublicRoute'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { ActivityPage } from '@/pages/ActivityPage'
 import { InsightsPage } from '@/pages/InsightsPage'
@@ -13,20 +15,27 @@ import { OnboardingPage } from '@/pages/OnboardingPage'
 export function AppRoutes() {
   return (
     <Routes>
-      {/* Main Application Shell Routes */}
-      <Route element={<AppLayout />}>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/activity" element={<ActivityPage />} />
-        <Route path="/insights" element={<InsightsPage />} />
-        <Route path="/goals" element={<GoalsPage />} />
-        <Route path="/more" element={<MorePage />} />
+      {/* Protected Main Application Shell Routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/activity" element={<ActivityPage />} />
+          <Route path="/insights" element={<InsightsPage />} />
+          <Route path="/goals" element={<GoalsPage />} />
+          <Route path="/more" element={<MorePage />} />
+        </Route>
+        {/* Protected Onboarding Flow */}
+        <Route element={<AuthLayout />}>
+          <Route path="/onboarding" element={<OnboardingPage />} />
+        </Route>
       </Route>
 
-      {/* Auth & Onboarding Routes */}
-      <Route element={<AuthLayout />}>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/onboarding" element={<OnboardingPage />} />
+      {/* Guest-only Auth Routes (redirects to / if authenticated) */}
+      <Route element={<PublicRoute />}>
+        <Route element={<AuthLayout />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+        </Route>
       </Route>
 
       {/* Fallback to Dashboard */}

@@ -1,18 +1,48 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import {
-  User,
   GraduationCap,
   Coins,
-  Shield,
   Smartphone,
   ChevronRight,
   Info,
+  LogOut,
+  Loader2,
+  Mail,
+  ShieldCheck,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { BackendStatusBadge } from '@/components/common/BackendStatusBadge'
+import { useAuth } from '@/hooks/useAuth'
 
 export function MorePage() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true)
+      await logout()
+      navigate('/login', { replace: true })
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
+
+  const initials = user?.full_name
+    ? user.full_name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : user?.email
+    ? user.email.slice(0, 2).toUpperCase()
+    : 'ST'
+
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       <div>
@@ -20,26 +50,36 @@ export function MorePage() {
           More & Settings
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground">
-          Preferences, student profile, and system status
+          Preferences, student profile, and session management
         </p>
       </div>
 
-      {/* Student Profile Card */}
+      {/* Student Profile Card (Dynamic from Backend) */}
       <Card className="rounded-2xl border-border/80 p-5 flex items-center space-x-4">
         <div className="h-14 w-14 rounded-2xl bg-primary/15 text-primary font-bold text-lg flex items-center justify-center shrink-0">
-          AP
+          {initials}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold text-foreground truncate">Akhil Patel</h2>
-            <Badge variant="secondary" className="text-[10px]">Student</Badge>
+            <h2 className="text-base font-semibold text-foreground truncate">
+              {user?.full_name || 'Student Account'}
+            </h2>
+            <Badge variant="secondary" className="text-[10px]">
+              Active Student
+            </Badge>
           </div>
-          <p className="text-xs text-muted-foreground truncate">B.Tech Computer Science · Year 3</p>
-          <p className="text-xs text-muted-foreground truncate">Campus ID: #SFC-2026-89</p>
+          <p className="text-xs text-muted-foreground truncate flex items-center gap-1.5 mt-0.5">
+            <Mail className="h-3 w-3" />
+            <span>{user?.email}</span>
+          </p>
+          <p className="text-[11px] text-muted-foreground truncate mt-0.5 flex items-center gap-1">
+            <ShieldCheck className="h-3 w-3 text-emerald-500" />
+            <span>Student ID: #{user?.id} · Verified Session</span>
+          </p>
         </div>
       </Card>
 
-      {/* Settings Sections */}
+      {/* Preferences Section */}
       <div className="space-y-4">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
           Preferences
@@ -76,46 +116,20 @@ export function MorePage() {
                 <p className="text-xs text-muted-foreground">Add FinCopilot to your home screen</p>
               </div>
             </div>
-            <Badge variant="success" className="text-[10px]">PWA Ready</Badge>
+            <Badge variant="success" className="text-[10px]">
+              PWA Ready
+            </Badge>
           </div>
         </Card>
       </div>
 
-      {/* Auth Routes / Onboarding Links */}
+      {/* Onboarding Tour Link */}
       <div className="space-y-4">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-          Account & Authentication Placeholders
+          Campus Guides
         </h3>
 
-        <Card className="rounded-2xl border-border/80 overflow-hidden divide-y divide-border/60">
-          <Link
-            to="/login"
-            className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors"
-          >
-            <div className="flex items-center space-x-3">
-              <User className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium text-foreground">Login Screen</p>
-                <p className="text-xs text-muted-foreground">Placeholder authentication route</p>
-              </div>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </Link>
-
-          <Link
-            to="/register"
-            className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors"
-          >
-            <div className="flex items-center space-x-3">
-              <Shield className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium text-foreground">Registration Screen</p>
-                <p className="text-xs text-muted-foreground">Student onboarding sign up</p>
-              </div>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </Link>
-
+        <Card className="rounded-2xl border-border/80 overflow-hidden">
           <Link
             to="/onboarding"
             className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors"
@@ -124,7 +138,7 @@ export function MorePage() {
               <GraduationCap className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium text-foreground">Onboarding Tour</p>
-                <p className="text-xs text-muted-foreground">First-run student experience</p>
+                <p className="text-xs text-muted-foreground">First-run student budgeting guide</p>
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -147,9 +161,31 @@ export function MorePage() {
             <BackendStatusBadge />
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            API Version: <code>v0.1.0</code> · Protocol: <code>REST (JSON)</code> · Port: <code>8000</code>
+            API Version: <code>v0.1.0</code> · Authentication: <code>JWT Bearer (HS256)</code>
           </p>
         </Card>
+      </div>
+
+      {/* Account Security & Logout */}
+      <div className="pt-2">
+        <Button
+          variant="destructive"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="w-full h-12 rounded-xl flex items-center justify-center space-x-2 text-sm font-semibold"
+        >
+          {isLoggingOut ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Logging out...</span>
+            </>
+          ) : (
+            <>
+              <LogOut className="h-4 w-4" />
+              <span>Log out of FinCopilot</span>
+            </>
+          )}
+        </Button>
       </div>
     </div>
   )

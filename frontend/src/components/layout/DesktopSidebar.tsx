@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BackendStatusBadge } from '@/components/common/BackendStatusBadge'
+import { useAuth } from '@/hooks/useAuth'
 
 const navItems = [
   { label: 'Home', path: '/', icon: Home, description: 'Daily Safe-to-Spend & overview' },
@@ -21,6 +22,19 @@ const navItems = [
 ]
 
 export function DesktopSidebar() {
+  const { user } = useAuth()
+  const displayName = user?.full_name || user?.email?.split('@')[0] || 'Student'
+  const initials = user?.full_name
+    ? user.full_name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : user?.email
+    ? user.email.slice(0, 2).toUpperCase()
+    : 'ST'
+
   return (
     <aside className="hidden md:flex flex-col w-64 lg:w-72 bg-card border-r border-border/80 min-h-screen p-4 select-none shrink-0">
       {/* Brand Header */}
@@ -87,12 +101,12 @@ export function DesktopSidebar() {
         </div>
 
         <div className="p-3 rounded-xl bg-muted/40 border border-border/50 flex items-center space-x-3">
-          <div className="h-9 w-9 rounded-full bg-primary/15 text-primary flex items-center justify-center font-bold text-xs">
-            AP
+          <div className="h-9 w-9 rounded-full bg-primary/15 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+            {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-foreground truncate">Akhil Patel</p>
-            <p className="text-[11px] text-muted-foreground truncate">Campus Tier · Year 3</p>
+            <p className="text-xs font-semibold text-foreground truncate">{displayName}</p>
+            <p className="text-[11px] text-muted-foreground truncate">{user?.email || 'Verified Session'}</p>
           </div>
           <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
         </div>

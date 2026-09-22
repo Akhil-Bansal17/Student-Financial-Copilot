@@ -1,16 +1,25 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { render, screen, within, waitFor } from '@testing-library/react'
 import { App } from '@/App'
+import { tokenStorage } from '@/services/authService'
+import { mockAuthenticatedUser } from './testUtils'
 
 describe('Student Financial Copilot - Application Smoke Test', () => {
-  it('renders the application with dashboard greeting and safe to spend card', () => {
+  beforeEach(() => {
+    tokenStorage.clearToken()
+    vi.restoreAllMocks()
+    mockAuthenticatedUser()
+  })
+
+  it('renders the application with dashboard greeting and safe to spend card', async () => {
     render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Safe to spend/i)).toBeInTheDocument()
+    })
 
     // Check greeting
     expect(screen.getByText(/Good morning/i)).toBeInTheDocument()
-
-    // Check main financial hero card
-    expect(screen.getByText(/Safe to spend/i)).toBeInTheDocument()
     expect(screen.getByText(/You're on track this month/i)).toBeInTheDocument()
 
     // Check supporting metrics
