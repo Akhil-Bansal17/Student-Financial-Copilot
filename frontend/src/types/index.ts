@@ -1,4 +1,4 @@
-export type TransactionType = 'income' | 'expense'
+export * from './transaction'
 
 export interface User {
   id: number
@@ -54,6 +54,9 @@ export interface OnboardingCompletePayload {
   money_sources?: MoneySource[]
   financial_focus?: FinancialFocus[]
 }
+
+import type { TransactionType } from './transaction'
+export * from './transaction'
 
 export interface TransactionItem {
   id: string
