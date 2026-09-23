@@ -35,8 +35,9 @@ export function LoginPage() {
 
     try {
       setIsSubmitting(true)
-      await login({ email: email.trim(), password })
-      navigate(fromPath, { replace: true })
+      const user = await login({ email: email.trim(), password })
+      const destination = user?.onboarding_completed ? fromPath : '/onboarding'
+      navigate(destination, { replace: true })
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         if (err.status === 401) {

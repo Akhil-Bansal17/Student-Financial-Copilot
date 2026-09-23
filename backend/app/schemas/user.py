@@ -36,6 +36,7 @@ class UserResponse(BaseModel):
     email: str
     full_name: Optional[str] = None
     is_active: bool
+    onboarding_completed: bool = False
     created_at: datetime.datetime
     updated_at: datetime.datetime
 

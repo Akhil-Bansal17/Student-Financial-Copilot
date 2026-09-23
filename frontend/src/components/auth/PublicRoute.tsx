@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { LoadingState } from '@/components/common/LoadingState'
 
 export function PublicRoute() {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { user, isAuthenticated, isLoading } = useAuth()
 
   if (isLoading) {
     return (
@@ -14,7 +14,8 @@ export function PublicRoute() {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />
+    const destination = user?.onboarding_completed ? '/' : '/onboarding'
+    return <Navigate to={destination} replace />
   }
 
   return <Outlet />

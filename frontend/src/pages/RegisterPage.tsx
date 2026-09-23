@@ -45,7 +45,7 @@ export function RegisterPage() {
         confirm_password: confirmPassword,
         full_name: fullName.trim() || undefined,
       })
-      navigate('/', { replace: true })
+      navigate('/onboarding', { replace: true })
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         if (err.status === 400 && err.message.includes('already exists')) {

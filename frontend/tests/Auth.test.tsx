@@ -102,6 +102,7 @@ describe('Frontend Authentication Flow', () => {
       email: 'verified.student@campus.edu',
       full_name: 'Verified Student',
       is_active: true,
+      onboarding_completed: true,
       created_at: '2026-09-22T00:00:00Z',
       updated_at: '2026-09-22T00:00:00Z',
     })
@@ -121,6 +122,7 @@ describe('Frontend Authentication Flow', () => {
       email: 'verified.student@campus.edu',
       full_name: 'Verified Student',
       is_active: true,
+      onboarding_completed: true,
       created_at: '2026-09-22T00:00:00Z',
       updated_at: '2026-09-22T00:00:00Z',
     })

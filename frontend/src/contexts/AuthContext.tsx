@@ -13,15 +13,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!token) {
       setUser(null)
       setIsLoading(false)
-      return
+      return null
     }
 
     try {
       const currentUser = await authService.getCurrentUser()
       setUser(currentUser)
+      return currentUser
     } catch {
       tokenStorage.clearToken()
       setUser(null)
+      return null
     } finally {
       setIsLoading(false)
     }
@@ -54,16 +56,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const login = async (payload: LoginPayload): Promise<void> => {
+  const login = async (payload: LoginPayload): Promise<User> => {
     const response = await authService.login(payload)
     setUser(response.user)
     queryClient.invalidateQueries()
+    return response.user
   }
 
-  const register = async (payload: RegisterPayload): Promise<void> => {
+  const register = async (payload: RegisterPayload): Promise<User> => {
     const response = await authService.register(payload)
     setUser(response.user)
     queryClient.invalidateQueries()
+    return response.user
   }
 
   const logout = async (): Promise<void> => {

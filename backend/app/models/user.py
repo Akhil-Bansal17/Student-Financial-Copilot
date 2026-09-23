@@ -1,8 +1,11 @@
 import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, Boolean, DateTime
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.financial_profile import FinancialProfile
 
 
 class User(Base):
@@ -24,6 +27,19 @@ class User(Base):
         onupdate=lambda: datetime.datetime.now(datetime.timezone.utc),
         nullable=False,
     )
+
+    financial_profile: Mapped[Optional["FinancialProfile"]] = relationship(
+        "FinancialProfile",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+    @property
+    def onboarding_completed(self) -> bool:
+        if self.financial_profile:
+            return bool(self.financial_profile.onboarding_completed)
+        return False
 
     def __repr__(self) -> str:
         return f"<User id={self.id} email={self.email}>"
