@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, auth, profile
+from app.api.v1.endpoints import health, auth, profile, transactions
 
 api_router = APIRouter()
 
@@ -11,6 +11,9 @@ api_router.include_router(auth.router, prefix="/auth", tags=["Auth"])
 
 # Register financial profile router
 api_router.include_router(profile.router, prefix="/profile", tags=["Profile"])
+
+# Register transactions router
+api_router.include_router(transactions.router, prefix="/transactions", tags=["Transactions"])
 
 # Future modules will be registered here cleanly:
 # api_router.include_router(transactions.router, prefix="/transactions", tags=["Transactions"])
