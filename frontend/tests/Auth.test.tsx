@@ -111,7 +111,7 @@ describe('Frontend Authentication Flow', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Good morning/i)).toBeInTheDocument()
-      expect(screen.getByText(/Safe to spend/i)).toBeInTheDocument()
+      expect(screen.getByText(/Current Balance/i)).toBeInTheDocument()
     })
   })
 
@@ -131,7 +131,7 @@ describe('Frontend Authentication Flow', () => {
     render(<App />)
 
     await waitFor(() => {
-      expect(screen.getByText(/Safe to spend/i)).toBeInTheDocument()
+      expect(screen.getByText(/Current Balance/i)).toBeInTheDocument()
     })
 
     // Navigate to More page

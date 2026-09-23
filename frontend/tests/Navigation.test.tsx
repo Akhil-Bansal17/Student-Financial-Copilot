@@ -16,7 +16,7 @@ describe('Navigation and Routing', () => {
 
     // Initially on Home / Dashboard
     await waitFor(() => {
-      expect(screen.getByText(/Safe to spend/i)).toBeInTheDocument()
+      expect(screen.getByText(/Current Balance/i)).toBeInTheDocument()
     })
 
     const main = screen.getByRole('main')

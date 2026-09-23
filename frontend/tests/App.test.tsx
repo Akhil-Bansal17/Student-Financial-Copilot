@@ -11,38 +11,27 @@ describe('Student Financial Copilot - Application Smoke Test', () => {
     mockAuthenticatedUser()
   })
 
-  it('renders the application with dashboard greeting and safe to spend card', async () => {
+  it('renders the application with dashboard greeting and current balance card', async () => {
     render(<App />)
 
     await waitFor(() => {
-      expect(screen.getByText(/Safe to spend/i)).toBeInTheDocument()
+      expect(screen.getByText(/Current Balance/i)).toBeInTheDocument()
     })
 
     // Check greeting
     expect(screen.getByText(/Good morning/i)).toBeInTheDocument()
-    expect(screen.getByText(/You're on track this month/i)).toBeInTheDocument()
 
     // Check supporting metrics
-    expect(screen.getByText(/Available/i)).toBeInTheDocument()
-    expect(screen.getByText(/Spent/i)).toBeInTheDocument()
-    expect(screen.getByText(/Savings/i)).toBeInTheDocument()
+    expect(screen.getByText('Starting')).toBeInTheDocument()
+    expect(screen.getByText('Income')).toBeInTheDocument()
+    expect(screen.getByText('Spent')).toBeInTheDocument()
 
-    // Scope to main content for transactions and upcoming bills
+    // Scope to main content for transactions and quick actions
     const main = screen.getByRole('main')
 
     expect(within(main).getByText(/Recent activity/i)).toBeInTheDocument()
-    expect(within(main).getByText('Food')).toBeInTheDocument()
-    expect(within(main).getByText('Metro')).toBeInTheDocument()
-    expect(within(main).getByText('Pocket Money')).toBeInTheDocument()
-
-    // Check insight card
-    expect(
-      within(main).getByText(/Food spending is higher than your usual monthly average/i)
-    ).toBeInTheDocument()
-
-    // Check upcoming expenses
-    expect(within(main).getByText(/Upcoming expenses/i)).toBeInTheDocument()
-    expect(within(main).getByText('Netflix')).toBeInTheDocument()
-    expect(within(main).getByText('Hostel')).toBeInTheDocument()
+    expect(within(main).getByText(/Quick actions/i)).toBeInTheDocument()
+    expect(within(main).getByText(/Add Expense/i)).toBeInTheDocument()
+    expect(within(main).getByText(/Add Income/i)).toBeInTheDocument()
   })
 })

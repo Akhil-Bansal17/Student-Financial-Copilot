@@ -268,7 +268,7 @@ describe('Student Onboarding Flow', () => {
       })
       expect(sessionStorage.getItem(ONBOARDING_DRAFT_KEY)).toBeNull()
       // Now on Dashboard
-      expect(screen.getByText(/Safe to spend/i)).toBeInTheDocument()
+      expect(screen.getByText(/Current Balance/i)).toBeInTheDocument()
     })
   })
 
@@ -279,7 +279,7 @@ describe('Student Onboarding Flow', () => {
     render(<App />)
 
     await waitFor(() => {
-      expect(screen.getByText(/Safe to spend/i)).toBeInTheDocument()
+      expect(screen.getByText(/Current Balance/i)).toBeInTheDocument()
       expect(screen.queryByRole('heading', { name: /Welcome to Student Financial Copilot/i })).toBeNull()
     })
   })
