@@ -80,6 +80,7 @@ export function ActivityPage() {
       setDeleteConfirmId(null)
       await queryClient.invalidateQueries({ queryKey: ['transactions'] })
       await queryClient.invalidateQueries({ queryKey: ['financial-summary'] })
+      await queryClient.invalidateQueries({ queryKey: ['analytics'] })
     } catch (err: unknown) {
       if (err instanceof Error) {
         setDeleteError(err.message)

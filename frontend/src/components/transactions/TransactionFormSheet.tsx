@@ -135,6 +135,7 @@ function TransactionFormContent({
       // Invalidate relevant query keys
       await queryClient.invalidateQueries({ queryKey: ['transactions'] })
       await queryClient.invalidateQueries({ queryKey: ['financial-summary'] })
+      await queryClient.invalidateQueries({ queryKey: ['analytics'] })
 
       onSuccess?.()
       onClose()
