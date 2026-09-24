@@ -27,4 +27,21 @@ describe('Responsive Shell & Mobile Navigation', () => {
     expect(within(mobileNav).getByText('Goals')).toBeInTheDocument()
     expect(within(mobileNav).getByText('More')).toBeInTheDocument()
   })
+
+  it('renders responsive dashboard elements without horizontal overflow markers', async () => {
+    // Set 320px mobile viewport width
+    window.innerWidth = 320
+    window.innerHeight = 568
+    window.dispatchEvent(new Event('resize'))
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Current Balance/i)).toBeInTheDocument()
+    })
+
+    expect(screen.getByText(/Selected Month Activity/i)).toBeInTheDocument()
+    expect(screen.getByText(/Spending by Category/i)).toBeInTheDocument()
+  })
 })
+
