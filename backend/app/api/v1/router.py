@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, auth, profile, transactions
+from app.api.v1.endpoints import health, auth, profile, transactions, analytics
 
 api_router = APIRouter()
 
@@ -15,7 +15,6 @@ api_router.include_router(profile.router, prefix="/profile", tags=["Profile"])
 # Register transactions router
 api_router.include_router(transactions.router, prefix="/transactions", tags=["Transactions"])
 
-# Future modules will be registered here cleanly:
-# api_router.include_router(transactions.router, prefix="/transactions", tags=["Transactions"])
-# api_router.include_router(budgets.router, prefix="/budgets", tags=["Budgets"])
-# api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
+# Register analytics router
+api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
+
