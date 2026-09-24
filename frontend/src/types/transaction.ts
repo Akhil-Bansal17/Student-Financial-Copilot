@@ -102,6 +102,9 @@ export interface FinancialSummaryResponse {
   total_income: number | string
   total_expenses: number | string
   current_balance: number | string
+  net_cash_flow?: number | string
+  income_transaction_count?: number
+  expense_transaction_count?: number
   currency: string
 }
 

@@ -66,6 +66,6 @@ export const transactionService = {
   },
 
   async getSummary(): Promise<FinancialSummaryResponse> {
-    return apiClient<FinancialSummaryResponse>('/api/v1/transactions/summary')
+    return apiClient<FinancialSummaryResponse>('/api/v1/analytics/summary')
   },
 }
