@@ -7,6 +7,7 @@ from app.db.base import Base
 if TYPE_CHECKING:
     from app.models.financial_profile import FinancialProfile
     from app.models.transaction import Transaction
+    from app.models.budget import Budget
 
 
 class User(Base):
@@ -41,6 +42,13 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
         order_by="Transaction.transaction_date.desc()",
+    )
+
+    budgets: Mapped[list["Budget"]] = relationship(
+        "Budget",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="Budget.year.desc(), Budget.month.desc()",
     )
 
     @property
