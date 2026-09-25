@@ -34,6 +34,7 @@ import { MonthNavigator } from '@/components/analytics/MonthNavigator'
 import { MonthlyOverviewSection } from '@/components/analytics/MonthlyOverviewSection'
 import { CategorySpendingSection } from '@/components/analytics/CategorySpendingSection'
 import { SpendingTrendSection } from '@/components/analytics/SpendingTrendSection'
+import { DashboardBudgetOverview } from '@/components/budgets/DashboardBudgetOverview'
 import { useAuth } from '@/hooks/useAuth'
 import { formatINR } from '@/lib/utils'
 import type { Transaction, TransactionType } from '@/types/transaction'
@@ -340,6 +341,11 @@ export function DashboardPage() {
           isLoading={isMonthlyLoading}
           isError={isMonthlyError}
           onRetry={() => refetchMonthly()}
+        />
+
+        <DashboardBudgetOverview
+          year={selectedYear}
+          month={selectedMonth}
         />
       </div>
 
