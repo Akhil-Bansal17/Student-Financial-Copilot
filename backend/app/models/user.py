@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from app.models.financial_profile import FinancialProfile
     from app.models.transaction import Transaction
     from app.models.budget import Budget
+    from app.models.goal import Goal
 
 
 class User(Base):
@@ -49,6 +50,13 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
         order_by="Budget.year.desc(), Budget.month.desc()",
+    )
+
+    goals: Mapped[list["Goal"]] = relationship(
+        "Goal",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="Goal.created_at.desc()",
     )
 
     @property
