@@ -3,6 +3,7 @@ import {
   Home,
   ListOrdered,
   Sparkles,
+  SlidersHorizontal,
   Target,
   MoreHorizontal,
   GraduationCap,
@@ -17,6 +18,7 @@ const navItems = [
   { label: 'Home', path: '/', icon: Home, description: 'Daily Safe-to-Spend & overview' },
   { label: 'Activity', path: '/activity', icon: ListOrdered, description: 'Transactions & allowances' },
   { label: 'Insights', path: '/insights', icon: Sparkles, description: 'Spending intelligence' },
+  { label: 'Budgets', path: '/budgets', icon: SlidersHorizontal, description: 'Spending limits & tracking' },
   { label: 'Goals', path: '/goals', icon: Target, description: 'Student savings targets' },
   { label: 'More', path: '/more', icon: MoreHorizontal, description: 'Settings, campus & accounts' },
 ]

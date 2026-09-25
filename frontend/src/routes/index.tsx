@@ -7,6 +7,7 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { ActivityPage } from '@/pages/ActivityPage'
 import { InsightsPage } from '@/pages/InsightsPage'
 import { GoalsPage } from '@/pages/GoalsPage'
+import { BudgetsPage } from '@/pages/BudgetsPage'
 import { MorePage } from '@/pages/MorePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
@@ -21,6 +22,7 @@ export function AppRoutes() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/insights" element={<InsightsPage />} />
+          <Route path="/budgets" element={<BudgetsPage />} />
           <Route path="/goals" element={<GoalsPage />} />
           <Route path="/more" element={<MorePage />} />
         </Route>
