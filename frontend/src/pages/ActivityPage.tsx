@@ -82,6 +82,7 @@ export function ActivityPage() {
       await queryClient.invalidateQueries({ queryKey: ['financial-summary'] })
       await queryClient.invalidateQueries({ queryKey: ['analytics'] })
       await queryClient.invalidateQueries({ queryKey: ['budgets'] })
+      await queryClient.invalidateQueries({ queryKey: ['insights'] })
     } catch (err: unknown) {
       if (err instanceof Error) {
         setDeleteError(err.message)
