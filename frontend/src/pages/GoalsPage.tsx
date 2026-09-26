@@ -77,6 +77,7 @@ export function GoalsPage() {
       setDeletingId(id)
       await goalService.deleteGoal(id)
       await queryClient.invalidateQueries({ queryKey: goalKeys.all })
+      await queryClient.invalidateQueries({ queryKey: ['insights'] })
     } finally {
       setDeletingId(null)
     }

@@ -83,6 +83,7 @@ function ContributeFormContent({ goal, onClose, onSuccess }: FormContentProps) {
       })
 
       await queryClient.invalidateQueries({ queryKey: ['goals'] })
+      await queryClient.invalidateQueries({ queryKey: ['insights'] })
       onSuccess?.()
       onClose()
     } catch (err: unknown) {
@@ -103,6 +104,7 @@ function ContributeFormContent({ goal, onClose, onSuccess }: FormContentProps) {
       setDeletingContribId(contribId)
       await goalService.deleteGoalContribution(goal.id, contribId)
       await queryClient.invalidateQueries({ queryKey: ['goals'] })
+      await queryClient.invalidateQueries({ queryKey: ['insights'] })
       onSuccess?.()
     } catch (err: unknown) {
       if (err instanceof Error) {

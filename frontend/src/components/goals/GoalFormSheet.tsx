@@ -92,6 +92,7 @@ function GoalFormContent({ initialGoal, onClose, onSuccess }: FormContentProps) 
       }
 
       await queryClient.invalidateQueries({ queryKey: ['goals'] })
+      await queryClient.invalidateQueries({ queryKey: ['insights'] })
 
       onSuccess?.()
       onClose()
