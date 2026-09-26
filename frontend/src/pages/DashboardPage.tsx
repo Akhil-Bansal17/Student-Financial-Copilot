@@ -36,6 +36,7 @@ import { CategorySpendingSection } from '@/components/analytics/CategorySpending
 import { SpendingTrendSection } from '@/components/analytics/SpendingTrendSection'
 import { DashboardBudgetOverview } from '@/components/budgets/DashboardBudgetOverview'
 import { DashboardGoalsOverview } from '@/components/goals/DashboardGoalsOverview'
+import { DashboardInsightsPreview } from '@/components/insights/DashboardInsightsPreview'
 import { useAuth } from '@/hooks/useAuth'
 import { formatINR } from '@/lib/utils'
 import type { Transaction, TransactionType } from '@/types/transaction'
@@ -350,6 +351,11 @@ export function DashboardPage() {
         />
 
         <DashboardGoalsOverview />
+
+        <DashboardInsightsPreview
+          year={selectedYear}
+          month={selectedMonth}
+        />
       </div>
 
       {/* SECTION: CHARTS (SPENDING BY CATEGORY & DAILY TREND) */}
