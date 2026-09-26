@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, auth, profile, transactions, analytics, budgets, goals
+from app.api.v1.endpoints import health, auth, profile, transactions, analytics, budgets, goals, insights
 
 api_router = APIRouter()
 
@@ -23,4 +23,7 @@ api_router.include_router(budgets.router, prefix="/budgets", tags=["Budgets"])
 
 # Register goals router
 api_router.include_router(goals.router, prefix="/goals", tags=["Goals"])
+
+# Register insights router
+api_router.include_router(insights.router, prefix="/insights", tags=["Insights"])
 
