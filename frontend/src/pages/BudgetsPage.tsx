@@ -91,6 +91,7 @@ export function BudgetsPage() {
       setDeletingId(id)
       await budgetService.deleteBudget(id)
       await queryClient.invalidateQueries({ queryKey: ['budgets'] })
+      await queryClient.invalidateQueries({ queryKey: ['insights'] })
     } finally {
       setDeletingId(null)
     }

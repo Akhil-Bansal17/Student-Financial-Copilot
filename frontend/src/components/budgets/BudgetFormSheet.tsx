@@ -113,6 +113,7 @@ function BudgetFormContent({
 
       // Invalidate relevant React Query caches
       await queryClient.invalidateQueries({ queryKey: ['budgets'] })
+      await queryClient.invalidateQueries({ queryKey: ['insights'] })
 
       onSuccess?.()
       onClose()
