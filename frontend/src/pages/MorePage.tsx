@@ -11,6 +11,7 @@ import {
   Mail,
   ShieldCheck,
   SlidersHorizontal,
+  Bot,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -87,6 +88,20 @@ export function MorePage() {
         </h3>
 
         <Card className="rounded-2xl border-border/80 overflow-hidden divide-y divide-border/60">
+          <Link
+            to="/copilot"
+            className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              <Bot className="h-5 w-5 text-primary" />
+              <div>
+                <p className="text-sm font-medium text-foreground">AI Financial Copilot</p>
+                <p className="text-xs text-muted-foreground">Ask natural-language questions about your finances</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+
           <Link
             to="/budgets"
             className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"

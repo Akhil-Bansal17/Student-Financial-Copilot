@@ -6,7 +6,9 @@ import { Header } from '@/components/layout/Header'
 const routeTitles: Record<string, string> = {
   '/': 'Financial Overview',
   '/activity': 'Activity & Transactions',
+  '/copilot': 'AI Financial Copilot',
   '/insights': 'Spending Insights',
+  '/budgets': 'Budget Planning',
   '/goals': 'Savings Goals',
   '/more': 'Settings & Preferences',
 }

@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   Home,
   ListOrdered,
+  Bot,
   Sparkles,
   SlidersHorizontal,
   Target,
@@ -17,6 +18,7 @@ import { useAuth } from '@/hooks/useAuth'
 const navItems = [
   { label: 'Home', path: '/', icon: Home, description: 'Daily Safe-to-Spend & overview' },
   { label: 'Activity', path: '/activity', icon: ListOrdered, description: 'Transactions & allowances' },
+  { label: 'Copilot', path: '/copilot', icon: Bot, description: 'AI financial explanations' },
   { label: 'Insights', path: '/insights', icon: Sparkles, description: 'Spending intelligence' },
   { label: 'Budgets', path: '/budgets', icon: SlidersHorizontal, description: 'Spending limits & tracking' },
   { label: 'Goals', path: '/goals', icon: Target, description: 'Student savings targets' },
