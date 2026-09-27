@@ -37,7 +37,13 @@ class Settings(BaseSettings):
                 pass
         elif isinstance(v, list):
             return [str(item) for item in v]
-        return ["http://localhost:5173", "http://127.0.0.1:5173"]
+    # AI Configuration (Phase 7)
+    AI_PROVIDER: str = "gemini"  # "gemini", "openai", "mock"
+    AI_API_KEY: str = ""
+    AI_MODEL: str = "gemini-1.5-flash"
+    AI_REQUEST_TIMEOUT_SECONDS: int = 15
+    AI_MAX_MESSAGE_LENGTH: int = 1000
+    AI_MAX_HISTORY_MESSAGES: int = 10
 
     model_config = SettingsConfigDict(
         env_file=".env",
