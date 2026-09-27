@@ -20,10 +20,11 @@ interface RequestOptions extends RequestInit {
 export async function apiClient<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { timeoutMs = 8000, ...fetchOptions } = options
 
-  // In development, relative paths route through the Vite proxy to FastAPI backend
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
+  // In development, relative paths route through the Vite proxy to FastAPI backend.
+  // In production, supports VITE_API_URL or VITE_API_BASE_URL.
+  const rawBaseUrl = (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '')
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
-  const url = baseUrl.startsWith('http') ? `${baseUrl}${cleanEndpoint}` : cleanEndpoint
+  const url = rawBaseUrl.startsWith('http') ? `${rawBaseUrl}${cleanEndpoint}` : cleanEndpoint
 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
