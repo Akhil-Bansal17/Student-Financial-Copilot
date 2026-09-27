@@ -101,3 +101,5 @@ export interface ApiErrorPayload {
   message: string
   details?: unknown
 }
+
+export * from './copilot'
