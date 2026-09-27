@@ -1,0 +1,293 @@
+import json
+import logging
+from decimal import Decimal
+from abc import ABC, abstractmethod
+from typing import List, Dict, Any, Optional
+import httpx
+
+from app.core.config import settings
+
+logger = logging.getLogger(__name__)
+
+
+SYSTEM_PROMPT_TEMPLATE = """You are the Student Financial Copilot, an empathetic, clear, and trustworthy financial assistant for college students.
+
+CRITICAL INSTRUCTIONS & STRICT BOUNDARIES:
+1. SOURCE OF TRUTH: The deterministic database records provided in the VERIFIED FINANCIAL CONTEXT below are your ONLY source of truth.
+2. NO HALLUCINATIONS: You MUST NEVER invent, assume, estimate, or hallucinate transactions, account balances, incomes, expenses, budgets, or goal amounts.
+3. GROUNDING: Every number or percentage you mention MUST come directly from the supplied context. If the user asks about an expense or category not in the context, explicitly state that no transactions for that category exist in the verified records.
+4. INSUFFICIENT DATA: If the context indicates insufficient data or if transactions are missing, politely inform the student that more records need to be added to answer accurately.
+5. ADVICE VS FACTS: Clearly distinguish between verified facts (e.g. "You spent ₹4,200 on Food this month") and educational tips/recommendations.
+6. NO EXTERNAL ACCESS: Never claim to be linked directly to bank accounts, UPI apps, or credit cards.
+7. NO TRANSACTIONS: You cannot make transfers, execute purchases, or directly alter budgets/goals.
+8. FORMATTING: Use friendly student-appropriate language. Highlight key amounts in bold (e.g. **₹4,200.00**). Use clean paragraphs and bullet points for readability. Avoid jargon.
+
+--- VERIFIED FINANCIAL CONTEXT ---
+{context_json}
+----------------------------------
+"""
+
+
+class AIProvider(ABC):
+    @abstractmethod
+    async def generate_response(
+        self,
+        system_instruction: str,
+        user_prompt: str,
+        conversation_history: List[Dict[str, str]],
+        financial_context: Dict[str, Any],
+    ) -> str:
+        """Generate an AI response strictly grounded in verified financial context."""
+        pass
+
+
+class MockAIProvider(AIProvider):
+    """
+    Deterministic rule-based offline provider.
+    Guarantees reliable, unhallucinated answers in test environments and when API keys are absent.
+    """
+
+    async def generate_response(
+        self,
+        system_instruction: str,
+        user_prompt: str,
+        conversation_history: List[Dict[str, str]],
+        financial_context: Dict[str, Any],
+    ) -> str:
+        prompt_lower = user_prompt.lower()
+        has_data = financial_context.get("has_sufficient_data", False)
+        acc = financial_context.get("account_summary", {})
+        monthly = financial_context.get("monthly_analytics", {})
+        top_cats = financial_context.get("top_expense_categories", [])
+        budgets = financial_context.get("category_budgets", [])
+        overall_budget = financial_context.get("overall_budget")
+        goals = financial_context.get("goals", [])
+        insights = financial_context.get("deterministic_observations", [])
+
+        if not has_data:
+            return (
+                "I don't have enough verified transactions, budgets, or savings goals recorded for this month to answer that accurately. "
+                "Try adding your recent expenses or setting up a monthly spending limit in the Activity and Budgets tabs to unlock insights!"
+            )
+
+        # 1. Spending queries ("where did most of my money go", "food", "transport", "spend")
+        if any(w in prompt_lower for w in ["where did", "top category", "most of my money", "highest", "biggest spending", "spending pattern"]):
+            if top_cats:
+                top = top_cats[0]
+                lines = [f"This month, your highest spending category is **{top['category']}** with a total of **₹{top['amount']}** ({top.get('percentage', '0')}% of your total spending)."]
+                if len(top_cats) > 1:
+                    lines.append("\nHere is your top spending breakdown:")
+                    for cat in top_cats[:3]:
+                        lines.append(f"- **{cat['category']}**: ₹{cat['amount']} ({cat.get('percentage', '0')}%) across {cat.get('transaction_count', 1)} transaction(s)")
+                return "\n".join(lines)
+            return "You haven't recorded any expenses for this month yet."
+
+        # Specific category questions
+        for cat in top_cats:
+            if cat["category"].lower() in prompt_lower:
+                return (
+                    f"You have spent **₹{cat['amount']}** on **{cat['category']}** this month across {cat.get('transaction_count', 1)} recorded transaction(s). "
+                    f"This accounts for {cat.get('percentage', '0')}% of your total monthly expenses."
+                )
+
+        # 2. Budget queries ("budget", "exceed", "limit")
+        if any(w in prompt_lower for w in ["budget", "limit", "exceed", "close to"]):
+            if not budgets and not overall_budget:
+                return "You haven't set up any budgets for this month yet. You can create spending limits in the Budgets section to monitor your pace."
+
+            lines = []
+            over_budget_cats = [b for b in budgets if b.get("over_budget")]
+            approaching_cats = [
+                b for b in budgets
+                if not b.get("over_budget") and Decimal(b.get("utilization_percentage", "0")) >= Decimal("80.0")
+            ]
+
+            if over_budget_cats:
+                for b in over_budget_cats:
+                    lines.append(f"- ⚠️ **{b['category']}** is over budget! You've spent **₹{b['actual_spending']}** of your ₹{b['budget_amount']} limit ({b['utilization_percentage']}%).")
+            if approaching_cats:
+                for b in approaching_cats:
+                    lines.append(f"- 🔔 **{b['category']}** is nearing its limit: **₹{b['actual_spending']}** spent of ₹{b['budget_amount']} ({b['utilization_percentage']}%).")
+
+            if not over_budget_cats and not approaching_cats:
+                lines.append("Great news! All your active categories are currently well within their budget limits.")
+                if overall_budget:
+                    lines.append(f"Overall monthly spending is at **₹{overall_budget['actual_spending']}** of your ₹{overall_budget['budget_amount']} limit ({overall_budget['utilization_percentage']}%).")
+            return "\n".join(lines)
+
+        # 3. Savings goals queries ("goal", "saving", "laptop", "target")
+        if any(w in prompt_lower for w in ["goal", "saving", "target", "save"]):
+            if not goals:
+                return "You don't have any savings goals active right now. You can set one up in the Goals tab to track progress toward milestones like semester books or a new laptop!"
+
+            lines = ["Here is the current status of your savings goals:"]
+            for g in goals:
+                lines.append(f"- **{g['name']}**: {g['progress_percentage']}% complete (**₹{g['current_amount']}** saved of ₹{g['target_amount']}). Status: *{g['status']}*.")
+            return "\n".join(lines)
+
+        # 4. Cash Flow & Summary queries ("summarize", "overview", "balance", "income", "expenses", "cash flow")
+        if any(w in prompt_lower for w in ["summarize", "overview", "summary", "how am i doing", "cash flow", "balance"]):
+            income = monthly.get("income", "0.00")
+            expenses = monthly.get("expenses", "0.00")
+            net = monthly.get("net_cash_flow", "0.00")
+            balance = acc.get("current_balance", "0.00")
+
+            surplus_str = f"a net surplus of **₹{net}**" if Decimal(net) >= 0 else f"a net deficit of **₹{abs(Decimal(net))}**"
+            return (
+                f"Here is your financial summary for **{financial_context.get('period')}**:\n\n"
+                f"- **Current Balance**: ₹{balance}\n"
+                f"- **Monthly Income**: ₹{income}\n"
+                f"- **Monthly Expenses**: ₹{expenses}\n"
+                f"- **Net Cash Flow**: Generated {surplus_str}\n\n"
+                + (f"Your primary expense was **{top_cats[0]['category']}** (₹{top_cats[0]['amount']})." if top_cats else "")
+            )
+
+        # 5. Month-over-month / What changed queries ("change", "last month", "compare")
+        if any(w in prompt_lower for w in ["change", "last month", "compare", "why did my spending"]):
+            exp_change = monthly.get("expense_change_percentage")
+            inc_change = monthly.get("income_change_percentage")
+            if exp_change is not None:
+                sign = "+" if Decimal(exp_change) > 0 else ""
+                direction = "increased" if Decimal(exp_change) > 0 else "decreased"
+                return (
+                    f"Compared with last month, your total expenses {direction} by **{sign}{exp_change}%** "
+                    f"(from ₹{monthly.get('previous_month_expenses', '0.00')} to ₹{monthly.get('expenses', '0.00')}).\n"
+                    + (f"Your monthly income changed by **{inc_change}%**." if inc_change else "")
+                )
+            return "I don't have enough previous month data to calculate month-over-month changes yet."
+
+        # Default fallback
+        summary_text = (
+            f"Based on your verified ledger for **{financial_context.get('period')}**, your total income is **₹{monthly.get('income', '0.00')}**, "
+            f"total expenses are **₹{monthly.get('expenses', '0.00')}**, and your current account balance stands at **₹{acc.get('current_balance', '0.00')}**.\n\n"
+            "Feel free to ask me specifically about your top expense categories, budget limits, or savings goals!"
+        )
+        return summary_text
+
+
+class GeminiAIProvider(AIProvider):
+    """Google Gemini REST API implementation with timeout and fallback protection."""
+
+    def __init__(self, api_key: str, model: str = "gemini-1.5-flash", timeout: int = 15):
+        self.api_key = api_key
+        self.model = model
+        self.timeout = timeout
+        self.endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
+
+    async def generate_response(
+        self,
+        system_instruction: str,
+        user_prompt: str,
+        conversation_history: List[Dict[str, str]],
+        financial_context: Dict[str, Any],
+    ) -> str:
+        context_json_str = json.dumps(financial_context, indent=2)
+        full_system_instruction = SYSTEM_PROMPT_TEMPLATE.format(context_json_str=context_json_str)
+
+        contents = []
+        for turn in conversation_history:
+            role = "user" if turn.get("role") == "user" else "model"
+            contents.append({"role": role, "parts": [{"text": turn.get("content", "")}]})
+
+        contents.append({"role": "user", "parts": [{"text": user_prompt}]})
+
+        payload = {
+            "system_instruction": {"parts": [{"text": full_system_instruction}]},
+            "contents": contents,
+            "generationConfig": {
+                "temperature": 0.2,
+                "maxOutputTokens": 800,
+            },
+        }
+
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            resp = await client.post(
+                self.endpoint,
+                params={"key": self.api_key},
+                json=payload,
+                headers={"Content-Type": "application/json"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+            candidates = data.get("candidates", [])
+            if candidates and "content" in candidates[0]:
+                parts = candidates[0]["content"].get("parts", [])
+                if parts and "text" in parts[0]:
+                    return parts[0]["text"].strip()
+
+            return "Unable to parse AI response. Please try rephrasing your question."
+
+
+class OpenAIProvider(AIProvider):
+    """OpenAI-compatible REST API implementation with timeout handling."""
+
+    def __init__(self, api_key: str, model: str = "gpt-4o-mini", timeout: int = 15):
+        self.api_key = api_key
+        self.model = model
+        self.timeout = timeout
+        self.endpoint = "https://api.openai.com/v1/chat/completions"
+
+    async def generate_response(
+        self,
+        system_instruction: str,
+        user_prompt: str,
+        conversation_history: List[Dict[str, str]],
+        financial_context: Dict[str, Any],
+    ) -> str:
+        context_json_str = json.dumps(financial_context, indent=2)
+        full_system_instruction = SYSTEM_PROMPT_TEMPLATE.format(context_json_str=context_json_str)
+
+        messages = [{"role": "system", "content": full_system_instruction}]
+        for turn in conversation_history:
+            messages.append({"role": turn.get("role", "user"), "content": turn.get("content", "")})
+        messages.append({"role": "user", "content": user_prompt})
+
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": 0.2,
+            "max_tokens": 800,
+        }
+
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            resp = await client.post(
+                self.endpoint,
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            choices = data.get("choices", [])
+            if choices and "message" in choices[0]:
+                return choices[0]["message"].get("content", "").strip()
+
+            return "Unable to parse AI response. Please try again."
+
+
+def get_ai_provider() -> AIProvider:
+    """Provider factory resolving configured AI implementation."""
+    provider_name = (settings.AI_PROVIDER or "").lower().strip()
+    api_key = (settings.AI_API_KEY or "").strip()
+
+    if provider_name == "mock" or not api_key:
+        return MockAIProvider()
+
+    if provider_name == "gemini":
+        return GeminiAIProvider(
+            api_key=api_key,
+            model=settings.AI_MODEL or "gemini-1.5-flash",
+            timeout=settings.AI_REQUEST_TIMEOUT_SECONDS,
+        )
+
+    if provider_name in ("openai", "chatgpt"):
+        return OpenAIProvider(
+            api_key=api_key,
+            model=settings.AI_MODEL or "gpt-4o-mini",
+            timeout=settings.AI_REQUEST_TIMEOUT_SECONDS,
+        )
+
+    return MockAIProvider()
