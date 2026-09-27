@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   ArrowRightLeft,
   RefreshCw,
+  Bot,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -356,6 +357,30 @@ export function DashboardPage() {
           year={selectedYear}
           month={selectedMonth}
         />
+
+        {/* Ask your Financial Copilot Card */}
+        <Card className="rounded-2xl border-primary/20 bg-gradient-to-r from-primary/5 via-indigo-500/5 to-purple-500/5 p-4 sm:p-5 hover:border-primary/40 transition-all shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-3.5">
+              <div className="h-10 w-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 shadow-inner">
+                <Bot className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Ask your Financial Copilot</h3>
+                <p className="text-xs text-muted-foreground">
+                  Get instant natural-language explanations of your spending, budgets, and savings.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/copilot"
+              className="inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs self-start sm:self-auto shrink-0"
+            >
+              Ask Copilot
+              <ChevronRight className="ml-1.5 h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </Card>
       </div>
 
       {/* SECTION: CHARTS (SPENDING BY CATEGORY & DAILY TREND) */}
@@ -461,11 +486,10 @@ export function DashboardPage() {
                     >
                       <div className="flex items-center space-x-3 min-w-0">
                         <div
-                          className={`h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 ${
-                            isExpense
+                          className={`h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 ${isExpense
                               ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400'
                               : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400'
-                          }`}
+                            }`}
                         >
                           <IconComponent className="h-5 w-5" />
                         </div>
@@ -481,11 +505,10 @@ export function DashboardPage() {
 
                       <div className="text-right pl-3 shrink-0">
                         <p
-                          className={`text-sm sm:text-base font-bold tracking-tight ${
-                            isExpense
+                          className={`text-sm sm:text-base font-bold tracking-tight ${isExpense
                               ? 'text-foreground'
                               : 'text-emerald-600 dark:text-emerald-400'
-                          }`}
+                            }`}
                         >
                           {isExpense ? `-${formatINR(tx.amount)}` : `+${formatINR(tx.amount)}`}
                         </p>
