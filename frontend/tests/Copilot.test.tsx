@@ -223,6 +223,12 @@ describe('AI Financial Copilot (Phase 7)', () => {
       monthly_expenses: '5000.00',
       monthly_net_cash_flow: '15000.00',
       transaction_count: 5,
+      previous_month_income: '18000.00',
+      previous_month_expenses: '4500.00',
+      previous_month_net_cash_flow: '13500.00',
+      income_change_percentage: '11.1',
+      expense_change_percentage: '11.1',
+      net_cash_flow_change_percentage: '11.1',
     })
     vi.spyOn(analyticsService, 'getCategories').mockResolvedValue({
       year: 2026,
@@ -233,13 +239,19 @@ describe('AI Financial Copilot (Phase 7)', () => {
     vi.spyOn(analyticsService, 'getTrend').mockResolvedValue({
       year: 2026,
       month: 9,
-      currency: 'INR',
       days: [],
     })
     vi.spyOn(budgetService, 'getBudgetSummary').mockResolvedValue({
       year: 2026,
       month: 9,
       currency: 'INR',
+      overall_budget: null,
+      overall_budget_id: null,
+      overall_spending: '0.00',
+      overall_remaining: null,
+      overall_utilization: null,
+      overall_over_budget: false,
+      overall: null,
       category_budgets: [],
       has_overall_budget: false,
       total_categories_budgeted: 0,
@@ -251,8 +263,9 @@ describe('AI Financial Copilot (Phase 7)', () => {
       completed_goals_count: 0,
       overdue_goals_count: 0,
       total_target_amount: '0.00',
-      total_current_amount: '0.00',
+      total_saved_amount: '0.00',
       overall_progress_percentage: '0.0',
+      goals: [],
     })
     vi.spyOn(insightService, 'getInsights').mockResolvedValue({
       year: 2026,
@@ -271,9 +284,8 @@ describe('AI Financial Copilot (Phase 7)', () => {
     vi.spyOn(transactionService, 'getTransactions').mockResolvedValue({
       items: [],
       total: 0,
-      page: 1,
-      size: 10,
-      pages: 1,
+      limit: 10,
+      offset: 0,
     })
 
     render(

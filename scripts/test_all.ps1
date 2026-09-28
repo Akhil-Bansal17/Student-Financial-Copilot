@@ -6,6 +6,16 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
+Write-Host "`n=== Running Frontend TypeScript Check (tsc -b) ===" -ForegroundColor Cyan
+Push-Location frontend
+npm run typecheck
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Frontend TypeScript typecheck failed!" -ForegroundColor Red
+    Pop-Location
+    exit 1
+}
+Pop-Location
+
 Write-Host "`n=== Running Frontend Tests (Vitest) ===" -ForegroundColor Cyan
 Push-Location frontend
 npm run test -- --run

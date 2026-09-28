@@ -30,14 +30,14 @@ export function DesktopSidebar() {
   const displayName = user?.full_name || user?.email?.split('@')[0] || 'Student'
   const initials = user?.full_name
     ? user.full_name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
     : user?.email
-    ? user.email.slice(0, 2).toUpperCase()
-    : 'ST'
+      ? user.email.slice(0, 2).toUpperCase()
+      : 'ST'
 
   return (
     <aside className="hidden md:flex flex-col w-64 lg:w-72 bg-card border-r border-border/80 min-h-screen p-4 select-none shrink-0">
