@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.ai_copilot import CopilotChatRequest, CopilotChatResponse
 from app.services.ai_copilot_service import AICopilotService
+from app.core.rate_limiter import ai_rate_limiter
 
 router = APIRouter()
 
@@ -27,6 +28,7 @@ async def chat_with_copilot(
     Strictly isolated to the authenticated user's verified financial context.
     Never fabricates transactions, budgets, or balances.
     """
+    ai_rate_limiter.check_rate_limit(current_user.id)
     history_messages = request.conversation_history or request.history
     return await AICopilotService.chat(
         db=db,

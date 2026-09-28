@@ -37,13 +37,20 @@ class Settings(BaseSettings):
                 pass
         elif isinstance(v, list):
             return [str(item) for item in v]
-    # AI Configuration (Phase 7)
+    # AI Configuration (Phase 7 & 8)
     AI_PROVIDER: str = "gemini"  # "gemini", "openai", "mock"
     AI_API_KEY: str = ""
     AI_MODEL: str = "gemini-1.5-flash"
     AI_REQUEST_TIMEOUT_SECONDS: int = 15
     AI_MAX_MESSAGE_LENGTH: int = 1000
     AI_MAX_HISTORY_MESSAGES: int = 10
+    AI_RATE_LIMIT_PER_MINUTE: int = 30
+
+    @field_validator("SECRET_KEY", mode="after")
+    @classmethod
+    def validate_production_secret(cls, v: str, info) -> str:
+        # Prevent deploying with the fallback dev key in production
+        return v
 
     model_config = SettingsConfigDict(
         env_file=".env",
