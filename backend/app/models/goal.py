@@ -1,7 +1,7 @@
 from decimal import Decimal
 import datetime
 from typing import Optional, TYPE_CHECKING
-from sqlalchemy import Integer, String, Numeric, DateTime, Date, ForeignKey, CheckConstraint
+from sqlalchemy import Integer, String, Numeric, DateTime, Date, ForeignKey, CheckConstraint, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
@@ -66,6 +66,7 @@ class GoalContribution(Base):
     __tablename__ = "goal_contributions"
     __table_args__ = (
         CheckConstraint("amount > 0", name="check_contribution_amount_positive"),
+        Index("ix_goal_contributions_goal_id_created_at", "goal_id", "created_at"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True, autoincrement=True)

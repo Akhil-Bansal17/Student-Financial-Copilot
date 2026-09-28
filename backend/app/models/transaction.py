@@ -1,7 +1,7 @@
 from decimal import Decimal
 import datetime
 from typing import Optional, TYPE_CHECKING
-from sqlalchemy import Integer, String, Numeric, DateTime, ForeignKey, CheckConstraint
+from sqlalchemy import Integer, String, Numeric, DateTime, ForeignKey, CheckConstraint, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
@@ -14,6 +14,8 @@ class Transaction(Base):
     __table_args__ = (
         CheckConstraint("amount > 0", name="check_transaction_amount_positive"),
         CheckConstraint("transaction_type IN ('income', 'expense')", name="check_transaction_type_valid"),
+        Index("ix_transactions_user_id_date", "user_id", "transaction_date"),
+        Index("ix_transactions_user_id_type_date", "user_id", "transaction_type", "transaction_date"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True, autoincrement=True)
