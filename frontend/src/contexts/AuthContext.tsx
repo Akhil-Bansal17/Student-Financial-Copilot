@@ -51,8 +51,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     void init()
 
+    const handleUnauthorized = () => {
+      tokenStorage.clearToken()
+      if (isMounted) {
+        setUser(null)
+      }
+      queryClient.clear()
+    }
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized)
+
     return () => {
       isMounted = false
+      window.removeEventListener('auth:unauthorized', handleUnauthorized)
     }
   }, [])
 

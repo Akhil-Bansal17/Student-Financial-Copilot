@@ -62,6 +62,14 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
           message: `Request failed with status ${response.status} (${response.statusText})`,
         }
       }
+
+      if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/register')) {
+        tokenStorage.clearToken()
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+        }
+      }
+
       throw new ApiError(errorData.code || response.status, errorData.message, errorData.details)
     }
 
