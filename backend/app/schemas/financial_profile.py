@@ -29,6 +29,8 @@ def validate_balance(v: Optional[Decimal]) -> Optional[Decimal]:
         raise ValueError("Starting balance must be a finite number")
     if v < Decimal("0"):
         raise ValueError("Starting balance cannot be negative")
+    if v > Decimal("999999999.99"):
+        raise ValueError("Starting balance cannot exceed ₹999,999,999.99")
     return v.quantize(Decimal("0.01"))
 
 

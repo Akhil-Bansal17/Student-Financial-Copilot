@@ -5,14 +5,22 @@ from pydantic import BaseModel, EmailStr, Field, field_validator, model_validato
 
 class UserRegisterRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8, description="Password with minimum 8 characters")
-    confirm_password: str = Field(min_length=8, description="Password confirmation")
+    password: str = Field(min_length=8, max_length=128, description="Password with minimum 8 characters and maximum 128")
+    confirm_password: str = Field(min_length=8, max_length=128, description="Password confirmation")
     full_name: Optional[str] = Field(default=None, max_length=255)
 
     @field_validator("email", mode="after")
     @classmethod
     def normalize_email(cls, v: EmailStr) -> str:
         return v.strip().lower()
+
+    @field_validator("full_name", mode="after")
+    @classmethod
+    def normalize_full_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        cleaned = v.strip()
+        return cleaned if cleaned else None
 
     @model_validator(mode="after")
     def check_passwords_match(self) -> "UserRegisterRequest":
@@ -23,7 +31,7 @@ class UserRegisterRequest(BaseModel):
 
 class UserLoginRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=1)
+    password: str = Field(min_length=1, max_length=128)
 
     @field_validator("email", mode="after")
     @classmethod

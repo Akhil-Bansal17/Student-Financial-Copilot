@@ -16,6 +16,8 @@ def validate_positive_amount(v: Optional[Decimal]) -> Optional[Decimal]:
         raise ValueError("Amount must be a finite number")
     if v <= Decimal("0"):
         raise ValueError("Amount must be greater than zero")
+    if v > Decimal("999999999.99"):
+        raise ValueError("Budget amount cannot exceed ₹999,999,999.99")
     return v.quantize(Decimal("0.01"))
 
 
