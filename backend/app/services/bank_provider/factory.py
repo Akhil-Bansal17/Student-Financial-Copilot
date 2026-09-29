@@ -1,6 +1,7 @@
 from typing import Dict, Optional
 from app.services.bank_provider.base import BankDataProvider, BankProviderError
 from app.services.bank_provider.mock_provider import MockBankProvider
+from app.services.bank_provider.account_aggregator_provider import AccountAggregatorProvider
 
 # Registry for instantiated or overridden providers (useful for tests and dependency injection)
 _provider_registry: Dict[str, BankDataProvider] = {}
@@ -28,6 +29,9 @@ def get_bank_provider(provider_name: str) -> BankDataProvider:
 
     if normalized in ("mock_bank", "sandbox", "mock"):
         return MockBankProvider()
+
+    if normalized in ("setu_aa", "account_aggregator", "aa"):
+        return AccountAggregatorProvider()
 
     raise BankProviderError(
         f"Bank provider '{provider_name}' is not configured or unsupported in this environment.",
