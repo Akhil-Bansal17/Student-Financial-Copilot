@@ -58,6 +58,13 @@ class Settings(BaseSettings):
     AA_TIMEOUT_SECONDS: int = 15
     AA_SANDBOX_SIMULATE: bool = True
 
+    # Automatic Background Sync & Reconciliation (Phase 10)
+    BANK_SYNC_ENABLED: bool = True
+    BANK_SYNC_INTERVAL_MINUTES: int = 15
+    BANK_SYNC_LOCK_TIMEOUT_SECONDS: int = 300
+    BANK_SYNC_MAX_RETRIES: int = 3
+    BANK_SYNC_LOOKBACK_DAYS: int = 30
+
     @field_validator("SECRET_KEY", mode="after")
     @classmethod
     def validate_production_secret(cls, v: str, info) -> str:

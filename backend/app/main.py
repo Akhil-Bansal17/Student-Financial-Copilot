@@ -1,8 +1,20 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.errors import setup_exception_handlers
 from app.api.v1.router import api_router
+from app.services.bank_sync_scheduler import scheduler
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Launch automatic bank sync scheduler
+    scheduler.start()
+    yield
+    # Shutdown: Stop scheduler cleanly
+    scheduler.stop()
+
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -10,6 +22,7 @@ app = FastAPI(
     version="0.1.0",
     docs_url="/docs" if settings.DEBUG else None,
     redoc_url="/redoc" if settings.DEBUG else None,
+    lifespan=lifespan,
 )
 
 # Set up CORS middleware
