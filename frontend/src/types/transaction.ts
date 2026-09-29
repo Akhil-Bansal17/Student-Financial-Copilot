@@ -68,7 +68,9 @@ export interface Transaction {
   description: string | null
   payment_method: string
   transaction_date: string
-  source?: 'MANUAL' | 'BANK_SYNC'
+  source?: 'MANUAL' | 'BANK_SYNC' | 'RECONCILED'
+  reconciliation_status?: string | null
+  reconciled_with_id?: number | null
   provider?: string | null
   account_id?: number | null
   external_transaction_id?: string | null

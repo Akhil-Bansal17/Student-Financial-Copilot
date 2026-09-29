@@ -18,6 +18,10 @@ export interface ConnectedAccount {
   created_at: string
   updated_at: string
   is_sandbox?: boolean
+  auto_sync_enabled?: boolean
+  sync_lock_at?: string | null
+  last_sync_status?: string | null
+  error_count?: number
 }
 
 export interface ConnectedAccountListResponse {
@@ -32,10 +36,15 @@ export interface SyncRun {
   account_id: number
   provider: string
   status: SyncStatus
+  trigger_type?: 'MANUAL' | 'AUTOMATIC' | 'RETRY'
   transactions_fetched: number
   transactions_imported: number
   transactions_skipped: number
+  transactions_reconciled?: number
+  transactions_pending_review?: number
+  error_code?: string | null
   error_message: string | null
+  retry_count?: number
   started_at: string
   completed_at: string | null
   created_at: string

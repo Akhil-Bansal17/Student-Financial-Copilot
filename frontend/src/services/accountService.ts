@@ -54,5 +54,11 @@ export const accountService = {
   async getSyncHistory(id: number, limit: number = 20): Promise<SyncRun[]> {
     return apiClient<SyncRun[]>(`/api/v1/accounts/${id}/sync-history?limit=${limit}`)
   },
+
+  async syncAll(): Promise<SyncRun[]> {
+    return apiClient<SyncRun[]>('/api/v1/accounts/sync-all', {
+      method: 'POST',
+    })
+  },
 }
 
