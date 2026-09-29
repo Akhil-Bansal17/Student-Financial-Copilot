@@ -68,6 +68,12 @@ export interface Transaction {
   description: string | null
   payment_method: string
   transaction_date: string
+  source?: 'MANUAL' | 'BANK_SYNC'
+  provider?: string | null
+  account_id?: number | null
+  external_transaction_id?: string | null
+  raw_bank_description?: string | null
+  imported_at?: string | null
   created_at: string
   updated_at: string
 }
