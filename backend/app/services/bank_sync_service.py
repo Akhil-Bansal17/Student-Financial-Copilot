@@ -1,16 +1,19 @@
 import datetime
 from decimal import Decimal
 from typing import List, Optional
+import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.models.account import ConnectedAccount, AccountConsent, SyncRun
 from app.models.transaction import Transaction
+from app.models.reconciliation import TransactionReconciliation
 from app.core.config import settings
 from app.core.constants import EXPENSE_CATEGORIES, INCOME_CATEGORIES, PAYMENT_METHODS
 from app.services.bank_provider.base import BankProviderError
 from app.services.bank_provider.factory import get_bank_provider
+from app.services.reconciliation_service import TransactionReconciliationService
 
 
 class BankSyncService:
@@ -109,12 +112,25 @@ class BankSyncService:
         db.refresh(account)
         return account
 
-    @staticmethod
-    def sync_account(db: Session, user: User, account_id: int) -> SyncRun:
+    @classmethod
+    def sync_account(
+        cls,
+        db: Session,
+        user: User,
+        account_id: int,
+        trigger_type: str = "MANUAL",
+    ) -> SyncRun:
         """
         Synchronize bank transactions and balance for a connected financial account.
-        Guarantees idempotency: running twice does not produce duplicates.
+        Guarantees:
+        - Concurrency protection across processes (sync_lock_at with TTL).
+        - Idempotency: exact external_id matches are skipped.
+        - Reconciliation: matches manual transactions using conservative deterministic scoring.
+        - Ledger safety: high-confidence matches are reconciled in-place without duplicate rows.
+        - Review workflow: ambiguous matches create pending reviews without polluting ledger balance.
+        - Retry backoff: transient errors record exponential backoff; permanent errors mark account.
         """
+        now = datetime.datetime.now(datetime.timezone.utc)
         account = (
             db.query(ConnectedAccount)
             .filter(
@@ -135,15 +151,33 @@ class BankSyncService:
                 detail=f"Cannot sync account with status '{account.status}'. Please reconnect the account first.",
             )
 
-        now = datetime.datetime.now(datetime.timezone.utc)
+        # Concurrency protection: verify not locked by another active worker/request
+        if account.sync_lock_at is not None:
+            lock_age = (now - account.sync_lock_at).total_seconds()
+            if lock_age < settings.BANK_SYNC_LOCK_TIMEOUT_SECONDS:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Account synchronization is currently in progress. Please wait.",
+                )
+
+        # Acquire lock
+        lock_token = str(uuid.uuid4())
+        account.sync_lock_at = now
+        account.sync_lock_token = lock_token
+        db.commit()
+
         sync_run = SyncRun(
             user_id=user.id,
             account_id=account.id,
             provider=account.provider,
             status="RUNNING",
+            trigger_type=trigger_type,
             transactions_fetched=0,
             transactions_imported=0,
             transactions_skipped=0,
+            transactions_reconciled=0,
+            transactions_pending_review=0,
+            retry_count=account.sync_retry_count,
             started_at=now,
         )
         db.add(sync_run)
@@ -156,7 +190,7 @@ class BankSyncService:
             # 1. Update balance from provider
             balance, balance_as_of = provider.fetch_balance(account.provider_account_id)
             account.current_balance = balance.quantize(Decimal("0.01"))
-            account.balance_as_of = balance_as_of
+            account.balance_as_of = balance_as_of or now
 
             # 2. Fetch transaction stream from provider
             fetched_txs = provider.fetch_transactions(account.provider_account_id)
@@ -164,36 +198,88 @@ class BankSyncService:
 
             imported_count = 0
             skipped_count = 0
+            reconciled_count = 0
+            pending_review_count = 0
+            latest_tx_date = None
 
-            # 3. Deduplicate and normalize
+            # 3. Deduplicate, reconcile, and normalize
             for ptx in fetched_txs:
-                # Deterministic check: provider + external_account_id + external_transaction_id
+                if ptx.transaction_date:
+                    if latest_tx_date is None or ptx.transaction_date > latest_tx_date:
+                        latest_tx_date = ptx.transaction_date
+
+                # Check 1: EXACT DUPLICATE by external_transaction_id in transactions table
                 existing_tx = (
                     db.query(Transaction)
                     .filter(
                         Transaction.provider == account.provider,
-                        Transaction.external_account_id == ptx.external_account_id,
                         Transaction.external_transaction_id == ptx.external_transaction_id,
                     )
                     .first()
                 )
-
                 if existing_tx:
                     skipped_count += 1
                     continue
 
-                # Normalization
+                # Check 2: Check if already in TransactionReconciliation for this external_id
+                existing_rec = (
+                    db.query(TransactionReconciliation)
+                    .filter(
+                        TransactionReconciliation.user_id == user.id,
+                        TransactionReconciliation.external_transaction_id == ptx.external_transaction_id,
+                        TransactionReconciliation.status.in_(("AUTO_RECONCILED", "MATCHED", "PENDING_REVIEW")),
+                    )
+                    .first()
+                )
+                if existing_rec:
+                    skipped_count += 1
+                    continue
+
+                # Check 3: Evaluate reconciliation against manual transactions
+                candidate_match = TransactionReconciliationService.find_best_candidate(
+                    db, user.id, ptx
+                )
+
+                if candidate_match:
+                    manual_cand, score, match_type, reasons = candidate_match
+                    if match_type == "HIGH_CONFIDENCE":
+                        # Auto-reconcile with high confidence (single entry in ledger)
+                        TransactionReconciliationService.auto_reconcile(
+                            db=db,
+                            user=user,
+                            account=account,
+                            manual_tx=manual_cand,
+                            bank_dto=ptx,
+                            score=score,
+                            reasons=reasons,
+                            sync_run_id=sync_run.id,
+                        )
+                        reconciled_count += 1
+                        continue
+                    elif match_type == "POSSIBLE_MATCH":
+                        # Create pending review (held separate until user confirms)
+                        TransactionReconciliationService.create_pending_review(
+                            db=db,
+                            user=user,
+                            account=account,
+                            manual_tx=manual_cand,
+                            bank_dto=ptx,
+                            score=score,
+                            reasons=reasons,
+                        )
+                        pending_review_count += 1
+                        continue
+
+                # Check 4: No match - import as standard BANK_SYNC transaction
                 tx_date = ptx.transaction_date
                 if tx_date.tzinfo is None:
                     tx_date = tx_date.replace(tzinfo=datetime.timezone.utc)
 
-                # Validate and normalize category
                 if ptx.transaction_type == "expense":
                     category = ptx.category if ptx.category in EXPENSE_CATEGORIES else "Other"
                 else:
                     category = ptx.category if ptx.category in INCOME_CATEGORIES else "Other"
 
-                # Validate payment method
                 payment_method = ptx.payment_method if ptx.payment_method in PAYMENT_METHODS else "Bank Transfer"
 
                 normalized_tx = Transaction(
@@ -211,20 +297,30 @@ class BankSyncService:
                     external_account_id=ptx.external_account_id,
                     raw_bank_description=ptx.raw_bank_description,
                     sync_run_id=sync_run.id,
+                    reconciliation_status="UNRECONCILED",
                     imported_at=datetime.datetime.now(datetime.timezone.utc),
                 )
                 db.add(normalized_tx)
                 imported_count += 1
 
-            # Complete sync run
+            # Update account cursor & status
             completion_time = datetime.datetime.now(datetime.timezone.utc)
-            sync_run.transactions_imported = imported_count
-            sync_run.transactions_skipped = skipped_count
-            sync_run.status = "SUCCESS"
-            sync_run.completed_at = completion_time
-
+            if latest_tx_date:
+                account.sync_cursor = latest_tx_date.isoformat()
             account.last_synced_at = completion_time
             account.status = "ACTIVE"
+            account.sync_retry_count = 0
+            account.next_retry_at = None
+            account.last_sync_status = "SUCCESS"
+            account.last_sync_error = None
+
+            # Finalize sync run
+            sync_run.transactions_imported = imported_count
+            sync_run.transactions_skipped = skipped_count
+            sync_run.transactions_reconciled = reconciled_count
+            sync_run.transactions_pending_review = pending_review_count
+            sync_run.status = "SUCCESS"
+            sync_run.completed_at = completion_time
 
             db.commit()
             db.refresh(sync_run)
@@ -232,29 +328,69 @@ class BankSyncService:
 
         except BankProviderError as exc:
             db.rollback()
-            # Mark sync run as failed in a clean transaction
+            err_msg = str(getattr(exc, "message", exc))[:500]
             failed_run = db.query(SyncRun).filter(SyncRun.id == sync_run.id).first()
             if failed_run:
                 failed_run.status = "FAILED"
-                failed_run.error_message = exc.message[:500]
+                failed_run.error_code = "PROVIDER_ERROR"
+                failed_run.error_message = err_msg
                 failed_run.completed_at = datetime.datetime.now(datetime.timezone.utc)
                 db.commit()
+
+            failed_acc = db.query(ConnectedAccount).filter(ConnectedAccount.id == account.id).first()
+            if failed_acc:
+                failed_acc.last_sync_status = "FAILED"
+                failed_acc.last_sync_error = err_msg
+                if exc.status_code in (500, 502, 503, 504, 408):
+                    failed_acc.sync_retry_count += 1
+                    if failed_acc.sync_retry_count <= settings.BANK_SYNC_MAX_RETRIES:
+                        backoff = 2 ** failed_acc.sync_retry_count
+                        failed_acc.next_retry_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=backoff)
+                elif exc.status_code in (401, 403):
+                    failed_acc.status = "REVOKED"
+                    failed_acc.sync_retry_count = 0
+                    failed_acc.next_retry_at = None
+                db.commit()
+
             raise HTTPException(
                 status_code=exc.status_code,
-                detail=f"Bank provider error: {exc.message}",
+                detail=f"Bank provider error: {err_msg}",
             )
+        except HTTPException:
+            raise
         except Exception as exc:
             db.rollback()
             failed_run = db.query(SyncRun).filter(SyncRun.id == sync_run.id).first()
             if failed_run:
                 failed_run.status = "FAILED"
+                failed_run.error_code = "INTERNAL_ERROR"
                 failed_run.error_message = str(exc)[:500]
                 failed_run.completed_at = datetime.datetime.now(datetime.timezone.utc)
                 db.commit()
+
+            failed_acc = db.query(ConnectedAccount).filter(ConnectedAccount.id == account.id).first()
+            if failed_acc:
+                failed_acc.last_sync_status = "FAILED"
+                failed_acc.last_sync_error = str(exc)[:500]
+                failed_acc.sync_retry_count += 1
+                if failed_acc.sync_retry_count <= settings.BANK_SYNC_MAX_RETRIES:
+                    backoff = 2 ** failed_acc.sync_retry_count
+                    failed_acc.next_retry_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=backoff)
+                db.commit()
+
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Unexpected internal error during bank synchronization",
             )
+        finally:
+            try:
+                locked_acc = db.query(ConnectedAccount).filter(ConnectedAccount.id == account.id).first()
+                if locked_acc and locked_acc.sync_lock_token == lock_token:
+                    locked_acc.sync_lock_at = None
+                    locked_acc.sync_lock_token = None
+                    db.commit()
+            except Exception:
+                db.rollback()
 
     @staticmethod
     def disconnect_account(db: Session, user: User, account_id: int) -> ConnectedAccount:
