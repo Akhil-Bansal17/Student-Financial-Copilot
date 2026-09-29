@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Calendar,
   ChevronRight,
@@ -23,6 +23,9 @@ import {
   ArrowRightLeft,
   RefreshCw,
   Bot,
+  Building2,
+  AlertTriangle,
+  CheckCircle2,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -31,6 +34,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TransactionFormSheet } from '@/components/transactions/TransactionFormSheet'
 import { transactionService } from '@/services/transactionService'
 import { analyticsService, analyticsKeys } from '@/services/analyticsService'
+import { reconciliationService } from '@/services/reconciliationService'
+import { accountService } from '@/services/accountService'
 import { MonthNavigator } from '@/components/analytics/MonthNavigator'
 import { MonthlyOverviewSection } from '@/components/analytics/MonthlyOverviewSection'
 import { CategorySpendingSection } from '@/components/analytics/CategorySpendingSection'
@@ -61,6 +66,20 @@ function getCategoryIcon(category: string, type: TransactionType) {
   return CreditCard
 }
 
+function formatLastSynced(timestamp: string | null | undefined): string {
+  if (!timestamp) return 'Never'
+  const date = new Date(timestamp)
+  const diffMs = Date.now() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  if (diffMins < 1) return 'just now'
+  if (diffMins === 1) return '1 min ago'
+  if (diffMins < 60) return `${diffMins} mins ago`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours === 1) return '1 hour ago'
+  if (diffHours < 24) return `${diffHours} hours ago`
+  return date.toLocaleDateString()
+}
+
 export function DashboardPage() {
   const { user } = useAuth()
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -75,6 +94,47 @@ export function DashboardPage() {
     day: 'numeric',
     month: 'short',
   }).format(new Date())
+
+  const queryClient = useQueryClient()
+  const [isSyncingAll, setIsSyncingAll] = useState(false)
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null)
+
+  // Bank sync freshness and balance reconciliation status
+  const { data: syncFreshness } = useQuery({
+    queryKey: ['sync-freshness'],
+    queryFn: () => reconciliationService.getSyncFreshnessStatus(),
+  })
+
+  const syncAllMutation = useMutation({
+    mutationFn: () => accountService.syncAll(),
+    onMutate: () => {
+      setIsSyncingAll(true)
+      setSyncFeedback(null)
+    },
+    onSuccess: async (runs) => {
+      const imported = runs.reduce((acc, r) => acc + (r.transactions_imported || 0), 0)
+      const reconciled = runs.reduce((acc, r) => acc + (r.transactions_reconciled || 0), 0)
+      setSyncFeedback(
+        `Sync completed: ${imported} imported, ${reconciled} reconciled.`
+      )
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['sync-freshness'] }),
+        queryClient.invalidateQueries({ queryKey: ['financial-summary'] }),
+        queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+        queryClient.invalidateQueries({ queryKey: ['connected-accounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['pending-reconciliations'] }),
+        queryClient.invalidateQueries({ queryKey: ['analytics'] }),
+      ])
+    },
+    onError: (err: unknown) => {
+      setSyncFeedback(
+        err instanceof Error ? err.message : 'Sync failed. Please try again shortly.'
+      )
+    },
+    onSettled: () => {
+      setIsSyncingAll(false)
+    },
+  })
 
   // 1. Fetch live financial summary (Current Account State - All-time)
   const {
@@ -328,6 +388,107 @@ export function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* 4. Bank Synchronization & Balance Reconciliation Status */}
+        {syncFreshness && syncFreshness.total_connected_accounts > 0 && (
+          <Card className="rounded-2xl border-border/80 bg-card p-4 sm:p-5 shadow-xs space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center space-x-3">
+                <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <Building2 className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-foreground">
+                      Connected Bank Sync
+                    </span>
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-medium">
+                      {syncFreshness.total_connected_accounts} connected
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Last sync: {formatLastSynced(syncFreshness.last_synced_at)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {syncFreshness.sync_status === 'SYNCING' || isSyncingAll ? (
+                  <Badge variant="outline" className="text-[11px] py-0.5 px-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 gap-1 font-medium">
+                    <RefreshCw className="h-3 w-3 animate-spin" />
+                    <span>Sync in progress...</span>
+                  </Badge>
+                ) : syncFreshness.is_stale || syncFreshness.sync_status === 'DELAYED' ? (
+                  <Badge variant="outline" className="text-[11px] py-0.5 px-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 gap-1 font-medium">
+                    <AlertTriangle className="h-3 w-3" />
+                    <span>Sync delayed</span>
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[11px] py-0.5 px-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1 font-medium">
+                    <CheckCircle2 className="h-3 w-3" />
+                    <span>Up to date</span>
+                  </Badge>
+                )}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => syncAllMutation.mutate()}
+                  disabled={isSyncingAll || syncFreshness.sync_status === 'SYNCING'}
+                  className="h-8 text-xs rounded-xl px-3 font-medium gap-1"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${isSyncingAll ? 'animate-spin' : ''}`} />
+                  <span>Sync Now</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Reconciliation Comparison: Bank vs Ledger Balance */}
+            <div className="rounded-xl bg-muted/40 p-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div>
+                <span className="text-muted-foreground block text-[11px]">Connected Bank Balance</span>
+                <span className="font-semibold text-foreground font-mono text-sm">
+                  {formatINR(syncFreshness.total_bank_balance)}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block text-[11px]">Ledger Balance (Authoritative)</span>
+                <span className="font-semibold text-foreground font-mono text-sm">
+                  {formatINR(syncFreshness.ledger_balance)}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block text-[11px]">Reconciliation Difference</span>
+                <span className={`font-semibold font-mono text-sm ${Math.abs(Number(syncFreshness.balance_difference)) > 0.01 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                  {Math.abs(Number(syncFreshness.balance_difference)) <= 0.01 ? 'Exact Match (₹0 difference)' : formatINR(Math.abs(Number(syncFreshness.balance_difference)))}
+                </span>
+              </div>
+            </div>
+
+            {/* Possible Duplicates Banner if any */}
+            {syncFreshness.pending_reconciliations > 0 && (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs">
+                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <span>
+                    <strong>{syncFreshness.pending_reconciliations}</strong> possible duplicate transaction{syncFreshness.pending_reconciliations > 1 ? 's' : ''} detected from bank sync.
+                  </span>
+                </div>
+                <Link
+                  to="/activity"
+                  className="font-semibold text-amber-700 dark:text-amber-300 hover:underline flex items-center gap-0.5 shrink-0 ml-2"
+                >
+                  Review
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            )}
+
+            {syncFeedback && (
+              <p className="text-[11px] text-muted-foreground italic">{syncFeedback}</p>
+            )}
+          </Card>
+        )}
       </div>
 
       {/* SECTION: SELECTED MONTH NAVIGATION & OVERVIEW */}

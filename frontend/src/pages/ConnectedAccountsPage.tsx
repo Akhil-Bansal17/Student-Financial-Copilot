@@ -219,9 +219,12 @@ export function ConnectedAccountsPage() {
         queryClient.invalidateQueries({ queryKey: ['insights'] }),
       ])
     } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to sync account transactions.'
       setFeedbackMessage({
         type: 'error',
-        text: err instanceof Error ? err.message : 'Failed to sync account transactions.',
+        text: msg.includes('409') || msg.includes('already in progress') || msg.includes('locked')
+          ? 'Account synchronization is currently in progress. Please wait a moment.'
+          : msg,
       })
     } finally {
       setSyncingAccountId(null)
@@ -417,6 +420,17 @@ export function ConnectedAccountsPage() {
                       >
                         {account.status.toLowerCase()}
                       </Badge>
+                      {account.auto_sync_enabled !== false && (
+                        <Badge variant="outline" className="text-[10px] text-muted-foreground border-border/70">
+                          Auto-Sync Active
+                        </Badge>
+                      )}
+                      {account.sync_lock_at && (
+                        <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 gap-1">
+                          <RefreshCw className="h-2.5 w-2.5 animate-spin" />
+                          Syncing
+                        </Badge>
+                      )}
                     </div>
                   </div>
 
@@ -451,11 +465,11 @@ export function ConnectedAccountsPage() {
                       <Button
                         size="sm"
                         onClick={() => handleSync(account)}
-                        disabled={isSyncing || !isActive}
+                        disabled={isSyncing || !isActive || !!account.sync_lock_at}
                         className="rounded-xl text-xs gap-1.5 h-9"
                       >
-                        <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                        <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
+                        <RefreshCw className={`h-3.5 w-3.5 ${isSyncing || !!account.sync_lock_at ? 'animate-spin' : ''}`} />
+                        <span>{isSyncing || !!account.sync_lock_at ? 'Syncing...' : 'Sync Now'}</span>
                       </Button>
 
                       {isActive ? (
@@ -548,14 +562,24 @@ export function ConnectedAccountsPage() {
                                 >
                                   {run.status}
                                 </Badge>
+                                {run.trigger_type && (
+                                  <Badge variant="outline" className="text-[9px] py-0 px-1 font-mono uppercase text-muted-foreground">
+                                    {run.trigger_type}
+                                  </Badge>
+                                )}
                                 <span className="text-muted-foreground">{runTime}</span>
                               </div>
 
-                              <div className="flex items-center gap-3 text-muted-foreground text-[11px]">
+                              <div className="flex items-center gap-3 text-muted-foreground text-[11px] flex-wrap">
                                 <span className="flex items-center gap-1">
                                   <ArrowDownLeft className="h-3 w-3 text-emerald-500" />
                                   <span>{run.transactions_imported} imported</span>
                                 </span>
+                                {typeof run.transactions_reconciled === 'number' && run.transactions_reconciled > 0 && (
+                                  <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                                    <span>{run.transactions_reconciled} reconciled</span>
+                                  </span>
+                                )}
                                 <span className="flex items-center gap-1">
                                   <ArrowUpRight className="h-3 w-3 text-muted-foreground" />
                                   <span>{run.transactions_skipped} skipped</span>
