@@ -181,3 +181,56 @@ def get_sync_history(
     Returns 404 if the account belongs to another student.
     """
     return BankSyncService.get_sync_history(db, current_user, account_id, limit=limit)
+
+
+@router.post("/sync-all")
+def sync_all_accounts(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Synchronize all active connected bank accounts for the authenticated student.
+    Uses concurrency locking to prevent duplicate runs.
+    """
+    accounts = (
+        db.query(ConnectedAccount)
+        .filter(
+            ConnectedAccount.user_id == current_user.id,
+            ConnectedAccount.status == "ACTIVE",
+        )
+        .all()
+    )
+    results = []
+    for acc in accounts:
+        try:
+            sync_run = BankSyncService.sync_account(
+                db=db,
+                user=current_user,
+                account_id=acc.id,
+                trigger_type="AUTOMATIC",
+            )
+            results.append({
+                "account_id": acc.id,
+                "status": "SUCCESS",
+                "imported": sync_run.transactions_imported,
+                "reconciled": sync_run.transactions_reconciled,
+                "pending_review": sync_run.transactions_pending_review,
+            })
+        except HTTPException as exc:
+            results.append({
+                "account_id": acc.id,
+                "status": "FAILED",
+                "error": exc.detail,
+            })
+        except Exception as exc:
+            results.append({
+                "account_id": acc.id,
+                "status": "FAILED",
+                "error": str(exc),
+            })
+
+    return {
+        "status": "COMPLETED",
+        "total_accounts": len(accounts),
+        "results": results,
+    }

@@ -10,6 +10,7 @@ from app.api.v1.endpoints import (
     insights,
     copilot,
     accounts,
+    reconciliation,
 )
 
 api_router = APIRouter()
@@ -43,4 +44,7 @@ api_router.include_router(copilot.router, prefix="/ai", tags=["AI Copilot"])
 
 # Register connected financial accounts router (Phase 9A)
 api_router.include_router(accounts.router, prefix="/accounts", tags=["Accounts"])
+
+# Register transaction reconciliation & bank sync router (Phase 10)
+api_router.include_router(reconciliation.router, prefix="/reconciliation", tags=["Reconciliation"])
 
