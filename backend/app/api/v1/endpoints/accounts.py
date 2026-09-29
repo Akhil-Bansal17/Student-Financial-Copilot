@@ -1,6 +1,6 @@
 from decimal import Decimal
-from typing import Annotated, List
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from typing import Annotated, List, Optional
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -11,6 +11,11 @@ from app.schemas.account import (
     ConnectedAccountListResponse,
     SyncRunResponse,
     AccountDisconnectResponse,
+    ConsentInitiationRequest,
+    ConsentInitiationResponse,
+    ConsentCallbackRequest,
+    ConsentCallbackResponse,
+    AAWebhookPayload,
 )
 from app.services.bank_sync_service import BankSyncService
 
@@ -49,6 +54,69 @@ def connect_mock_account(
     Guarantees no real bank credentials or PINs are collected.
     """
     return BankSyncService.connect_mock_account(db, current_user)
+
+
+@router.post("/consent/initiate", response_model=ConsentInitiationResponse, status_code=status.HTTP_201_CREATED)
+def initiate_aa_consent(
+    payload: ConsentInitiationRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Initiate an Account Aggregator consent request with Setu AA Sandbox / RBI AA framework.
+    Generates a cryptographically signed HMAC state token tied to the user session to prevent CSRF,
+    registers the pending consent in database, and returns the authorization URL.
+    """
+    result = BankSyncService.initiate_consent(
+        db=db,
+        user=current_user,
+        provider_name=payload.provider,
+        customer_identifier=payload.customer_identifier,
+        redirect_url=payload.redirect_url,
+    )
+    return ConsentInitiationResponse(**result)
+
+
+@router.post("/consent/callback", response_model=ConsentCallbackResponse)
+def handle_aa_consent_callback(
+    payload: ConsentCallbackRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Handle authorization callback from Account Aggregator webview.
+    Enforces HMAC-SHA256 state signature verification and strict user isolation,
+    verifies consent status with the provider, discovers financial accounts,
+    and automatically triggers initial transaction synchronization.
+    """
+    result = BankSyncService.handle_consent_callback(
+        db=db,
+        user=current_user,
+        consent_id=payload.consent_id,
+        state_token=payload.state,
+        callback_status=payload.status,
+    )
+    return ConsentCallbackResponse(**result)
+
+
+@router.post("/webhook/setu")
+async def setu_aa_webhook(
+    request: Request,
+    payload: AAWebhookPayload,
+    db: Annotated[Session, Depends(get_db)],
+    x_setu_signature: Annotated[Optional[str], Header()] = None,
+):
+    """
+    Receive and process asynchronous webhook events from Setu Account Aggregator.
+    Validates HMAC signature if AA_WEBHOOK_SECRET is configured.
+    """
+    raw_body = await request.body()
+    return BankSyncService.handle_setu_webhook(
+        db=db,
+        payload=payload.model_dump(),
+        signature=x_setu_signature,
+        raw_body=raw_body,
+    )
 
 
 @router.get("/{account_id}", response_model=ConnectedAccountResponse)
