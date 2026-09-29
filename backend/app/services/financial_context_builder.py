@@ -1,5 +1,7 @@
+import datetime
 from decimal import Decimal
 from typing import Dict, Any, List
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.services.analytics_service import AnalyticsService
@@ -117,8 +119,9 @@ class FinancialContextBuilder:
             for ins in insights_res.insights
         ]
 
-        # 8. Authoritative Connected Bank Accounts (Phase 9B)
+        # 8. Authoritative Connected Bank Accounts (Phase 9B & Phase 10)
         from app.models.account import ConnectedAccount
+        from app.models.reconciliation import TransactionReconciliation
         connected_accs = (
             db.query(ConnectedAccount)
             .filter(ConnectedAccount.user_id == user_id, ConnectedAccount.status == "ACTIVE")
@@ -127,6 +130,40 @@ class FinancialContextBuilder:
         total_connected_balance = sum(
             (acc.current_balance for acc in connected_accs if acc.current_balance is not None),
             Decimal("0.00"),
+        )
+
+        now = datetime.datetime.now(datetime.timezone.utc)
+        latest_sync = None
+        for acc in connected_accs:
+            if acc.last_synced_at:
+                s_dt = acc.last_synced_at if acc.last_synced_at.tzinfo else acc.last_synced_at.replace(tzinfo=datetime.timezone.utc)
+                if latest_sync is None or s_dt > latest_sync:
+                    latest_sync = s_dt
+
+        is_stale = False
+        sync_freshness = "Never synchronized"
+        if latest_sync:
+            diff_hours = (now - latest_sync).total_seconds() / 3600
+            if diff_hours < 1:
+                sync_freshness = "just now"
+            elif diff_hours < 24:
+                sync_freshness = f"{int(diff_hours)} hour(s) ago"
+            else:
+                sync_freshness = f"{int(diff_hours // 24)} day(s) ago"
+                is_stale = True
+            if diff_hours > 12:
+                is_stale = True
+        elif connected_accs:
+            is_stale = True
+
+        pending_reconciliations_count = (
+            db.query(func.count(TransactionReconciliation.id))
+            .filter(
+                TransactionReconciliation.user_id == user_id,
+                TransactionReconciliation.status == "PENDING_REVIEW",
+            )
+            .scalar()
+            or 0
         )
 
         return {
@@ -145,6 +182,10 @@ class FinancialContextBuilder:
                 "active_accounts_count": len(connected_accs),
                 "total_connected_bank_balance": str(total_connected_balance),
                 "institutions": [acc.institution_name for acc in connected_accs],
+                "last_synced_at": latest_sync.isoformat() if latest_sync else None,
+                "is_sync_stale": is_stale,
+                "sync_freshness": sync_freshness,
+                "pending_reconciliations_count": pending_reconciliations_count,
             },
             "monthly_analytics": {
                 "year": monthly.year,

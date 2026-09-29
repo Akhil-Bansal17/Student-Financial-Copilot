@@ -97,12 +97,15 @@ class MockAIProvider(AIProvider):
         conn = financial_context.get("connected_accounts", {})
 
         # Bank connection & Account Aggregator queries ("bank", "connected account", "institution")
-        if any(w in prompt_lower for w in ["bank", "connected account", "account aggregator", "institution", "linked account"]):
+        if any(w in prompt_lower for w in ["bank", "connected account", "account aggregator", "institution", "linked account", "sync", "stale"]):
             if conn.get("has_connected_bank"):
                 insts = ", ".join(conn.get("institutions", []))
+                stale_note = ""
+                if conn.get("is_sync_stale"):
+                    stale_note = f" (Note: Your connected bank data was last synchronized {conn.get('sync_freshness')}, so it may be stale.)"
                 return (
                     f"You have **{conn.get('active_accounts_count')}** connected account(s) via Account Aggregator ({insts}) "
-                    f"with a reported bank balance of **₹{conn.get('total_connected_bank_balance')}**. "
+                    f"with a reported bank balance of **₹{conn.get('total_connected_bank_balance')}**{stale_note}. "
                     f"Your internal ledger balance based on recorded transactions is **₹{acc.get('current_balance', '0.00')}**."
                 )
             return (
