@@ -37,7 +37,14 @@ class ConnectedAccountResponse(BaseModel):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def is_sandbox(self) -> bool:
-        return self.provider.lower() in ("mock_bank", "sandbox", "mock")
+        return self.provider.lower() in (
+            "mock_bank",
+            "sandbox",
+            "mock",
+            "setu_aa",
+            "account_aggregator",
+            "aa",
+        )
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -69,3 +76,37 @@ class AccountDisconnectResponse(BaseModel):
     success: bool = True
     message: str
     account: ConnectedAccountResponse
+
+
+class ConsentInitiationRequest(BaseModel):
+    provider: str = "setu_aa"
+    customer_identifier: Optional[str] = None
+    redirect_url: Optional[str] = None
+
+
+class ConsentInitiationResponse(BaseModel):
+    consent_id: str
+    authorization_url: str
+    state: str
+    status: str = "PENDING"
+    provider: str = "setu_aa"
+
+
+class ConsentCallbackRequest(BaseModel):
+    consent_id: str
+    state: str
+    status: str = "ACTIVE"
+
+
+class ConsentCallbackResponse(BaseModel):
+    success: bool = True
+    message: str
+    accounts: List[ConnectedAccountResponse]
+    status: str = "ACTIVE"
+    sync_result: Optional[SyncRunResponse] = None
+
+
+class AAWebhookPayload(BaseModel):
+    event: str
+    data: dict
+
