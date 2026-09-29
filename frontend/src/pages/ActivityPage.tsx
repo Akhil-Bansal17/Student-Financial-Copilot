@@ -11,6 +11,9 @@ import {
   Calendar,
   AlertTriangle,
   Loader2,
+  CheckCircle2,
+  GitCompare,
+  Split,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -22,6 +25,7 @@ import { ErrorState } from '@/components/common/ErrorState'
 import { TransactionFormSheet } from '@/components/transactions/TransactionFormSheet'
 import { formatINR } from '@/lib/utils'
 import { transactionService } from '@/services/transactionService'
+import { reconciliationService } from '@/services/reconciliationService'
 import { queryClient } from '@/lib/queryClient'
 import type { Transaction, TransactionType } from '@/types/transaction'
 
@@ -94,6 +98,56 @@ export function ActivityPage() {
     }
   }
 
+  // Reconciliation states & query
+  const [reconcilingId, setReconcilingId] = useState<number | null>(null)
+  const [reconcileAction, setReconcileAction] = useState<'match' | 'separate' | null>(null)
+  const [reconciliationError, setReconciliationError] = useState<string | null>(null)
+
+  const { data: pendingReconciliations = [] } = useQuery({
+    queryKey: ['pending-reconciliations'],
+    queryFn: () => reconciliationService.getPendingReconciliations(),
+  })
+
+  const handleMatch = async (id: number) => {
+    try {
+      setReconcilingId(id)
+      setReconcileAction('match')
+      setReconciliationError(null)
+      await reconciliationService.matchReconciliation(id)
+      await queryClient.invalidateQueries({ queryKey: ['pending-reconciliations'] })
+      await queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      await queryClient.invalidateQueries({ queryKey: ['financial-summary'] })
+      await queryClient.invalidateQueries({ queryKey: ['analytics'] })
+      await queryClient.invalidateQueries({ queryKey: ['budgets'] })
+      await queryClient.invalidateQueries({ queryKey: ['insights'] })
+    } catch (err: unknown) {
+      setReconciliationError(err instanceof Error ? err.message : 'Failed to match transaction.')
+    } finally {
+      setReconcilingId(null)
+      setReconcileAction(null)
+    }
+  }
+
+  const handleKeepSeparate = async (id: number) => {
+    try {
+      setReconcilingId(id)
+      setReconcileAction('separate')
+      setReconciliationError(null)
+      await reconciliationService.keepSeparateReconciliation(id)
+      await queryClient.invalidateQueries({ queryKey: ['pending-reconciliations'] })
+      await queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      await queryClient.invalidateQueries({ queryKey: ['financial-summary'] })
+      await queryClient.invalidateQueries({ queryKey: ['analytics'] })
+      await queryClient.invalidateQueries({ queryKey: ['budgets'] })
+      await queryClient.invalidateQueries({ queryKey: ['insights'] })
+    } catch (err: unknown) {
+      setReconciliationError(err instanceof Error ? err.message : 'Failed to separate transaction.')
+    } finally {
+      setReconcilingId(null)
+      setReconcileAction(null)
+    }
+  }
+
   const rawItems = txData?.items || []
   const totalCount = txData?.total || 0
 
@@ -137,6 +191,123 @@ export function ActivityPage() {
         >
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <span>{deleteError}</span>
+        </div>
+      )}
+
+      {/* Possible Duplicate Transactions Review Section */}
+      {pendingReconciliations.length > 0 && (
+        <div className="space-y-3 animate-in fade-in">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <GitCompare className="h-4 w-4 text-amber-500" />
+              <h2 className="text-sm font-semibold tracking-tight text-foreground">
+                Possible Duplicate Transactions ({pendingReconciliations.length})
+              </h2>
+            </div>
+            <Badge variant="outline" className="text-[11px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30">
+              Needs Review
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            We detected bank transactions that might correspond to your manual entries. Match them to avoid double counting, or keep them separate.
+          </p>
+
+          {reconciliationError && (
+            <div role="alert" className="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              <span>{reconciliationError}</span>
+            </div>
+          )}
+
+          <div className="space-y-2.5">
+            {pendingReconciliations.map((item) => (
+              <Card key={item.id} className="p-3.5 rounded-xl border-amber-500/30 bg-amber-500/5 space-y-3 shadow-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Left: Manual Entry */}
+                  <div className="p-2.5 rounded-lg bg-background/80 border border-border/60 space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-foreground">Manual Entry</span>
+                      <Badge variant="outline" className="text-[10px] py-0 px-1 text-muted-foreground">
+                        {item.manual_category}
+                      </Badge>
+                    </div>
+                    <p className="text-sm font-bold text-foreground">
+                      {formatINR(item.manual_amount)}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {item.manual_description || 'Manual transaction'}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {new Date(item.manual_date).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                    </p>
+                  </div>
+
+                  {/* Right: Bank Entry */}
+                  <div className="p-2.5 rounded-lg bg-background/80 border border-border/60 space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-foreground">Bank Transaction</span>
+                      <Badge variant="outline" className="text-[10px] py-0 px-1 text-primary border-primary/30 bg-primary/5">
+                        Bank Sync
+                      </Badge>
+                    </div>
+                    <p className="text-sm font-bold text-foreground">
+                      {formatINR(item.bank_amount)}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate" title={item.bank_description || item.raw_bank_description || ''}>
+                      {item.bank_description || item.raw_bank_description || 'Bank transaction'}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {new Date(item.bank_date).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Match indicator and action buttons */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-1 border-t border-amber-500/20">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-300">
+                      <span className="inline-block w-2 h-2 rounded-full bg-amber-500" />
+                      <span className="font-medium">Possible Match • {Math.round(Number(item.confidence_score) * 100)}% confidence</span>
+                    </div>
+                    {item.match_reasons && item.match_reasons.length > 0 && (
+                      <p className="text-[11px] text-muted-foreground">
+                        {item.match_reasons.join(' · ')}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <Button
+                      size="sm"
+                      onClick={() => handleMatch(item.id)}
+                      disabled={reconcilingId === item.id}
+                      className="flex-1 sm:flex-none h-8 text-xs px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                    >
+                      {reconcilingId === item.id && reconcileAction === 'match' ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-3 w-3" />
+                      )}
+                      <span>Match (Link Entry)</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleKeepSeparate(item.id)}
+                      disabled={reconcilingId === item.id}
+                      className="flex-1 sm:flex-none h-8 text-xs px-3 rounded-lg gap-1"
+                    >
+                      {reconcilingId === item.id && reconcileAction === 'separate' ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Split className="h-3 w-3" />
+                      )}
+                      <span>Keep Separate</span>
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
 
@@ -250,7 +421,14 @@ export function ActivityPage() {
                         >
                           {tx.payment_method}
                         </Badge>
-                        {tx.source === 'BANK_SYNC' ? (
+                        {tx.source === 'RECONCILED' ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] py-0 px-1.5 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/10 font-medium"
+                          >
+                            Reconciled
+                          </Badge>
+                        ) : tx.source === 'BANK_SYNC' ? (
                           <Badge
                             variant="outline"
                             className="text-[10px] py-0 px-1.5 text-primary border-primary/30 bg-primary/5"
