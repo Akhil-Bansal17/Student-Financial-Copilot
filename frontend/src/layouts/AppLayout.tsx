@@ -11,6 +11,7 @@ const routeTitles: Record<string, string> = {
   '/budgets': 'Budget Planning',
   '/goals': 'Savings Goals',
   '/more': 'Settings & Preferences',
+  '/connected-accounts': 'Connected Bank Accounts',
 }
 
 export function AppLayout() {

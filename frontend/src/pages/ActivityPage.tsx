@@ -240,7 +240,7 @@ export function ActivityPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold text-foreground truncate">
                           {tx.category}
                         </p>
@@ -250,10 +250,30 @@ export function ActivityPage() {
                         >
                           {tx.payment_method}
                         </Badge>
+                        {tx.source === 'BANK_SYNC' ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] py-0 px-1.5 text-primary border-primary/30 bg-primary/5"
+                          >
+                            Bank Sync
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] py-0 px-1.5 text-muted-foreground border-border/70"
+                          >
+                            Manual
+                          </Badge>
+                        )}
                       </div>
                       {tx.description && (
                         <p className="text-xs text-muted-foreground truncate mt-0.5">
                           {tx.description}
+                        </p>
+                      )}
+                      {tx.raw_bank_description && (
+                        <p className="text-[10px] font-mono text-muted-foreground/80 truncate mt-0.5" title={tx.raw_bank_description}>
+                          {tx.raw_bank_description}
                         </p>
                       )}
                       <p className="text-[11px] text-muted-foreground mt-0.5">{formattedDate}</p>

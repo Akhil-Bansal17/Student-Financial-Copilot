@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Bot,
+  Building2,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -88,6 +89,25 @@ export function MorePage() {
         </h3>
 
         <Card className="rounded-2xl border-border/80 overflow-hidden divide-y divide-border/60">
+          <Link
+            to="/connected-accounts"
+            className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              <Building2 className="h-5 w-5 text-primary" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-foreground">Connected Bank Accounts</p>
+                  <Badge variant="outline" className="text-[10px] text-primary border-primary/30">
+                    Sandbox
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">Automated bank sync & Account Aggregator feeds</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+
           <Link
             to="/copilot"
             className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"

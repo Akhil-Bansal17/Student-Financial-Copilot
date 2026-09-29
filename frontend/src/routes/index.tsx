@@ -12,6 +12,7 @@ import { InsightsPage } from '@/pages/InsightsPage'
 import { BudgetsPage } from '@/pages/BudgetsPage'
 import { GoalsPage } from '@/pages/GoalsPage'
 import { MorePage } from '@/pages/MorePage'
+import { ConnectedAccountsPage } from '@/pages/ConnectedAccountsPage'
 import { OnboardingPage } from '@/pages/OnboardingPage'
 
 export function AppRoutes() {
@@ -27,6 +28,7 @@ export function AppRoutes() {
           <Route path="/budgets" element={<BudgetsPage />} />
           <Route path="/goals" element={<GoalsPage />} />
           <Route path="/more" element={<MorePage />} />
+          <Route path="/connected-accounts" element={<ConnectedAccountsPage />} />
         </Route>
         {/* Protected Onboarding Flow */}
         <Route element={<AuthLayout />}>
