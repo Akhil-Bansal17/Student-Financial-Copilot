@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from app.models.transaction import Transaction
     from app.models.budget import Budget
     from app.models.goal import Goal
+    from app.models.account import ConnectedAccount, AccountConsent, SyncRun
 
 
 class User(Base):
@@ -57,6 +58,27 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
         order_by="Goal.created_at.desc()",
+    )
+
+    connected_accounts: Mapped[list["ConnectedAccount"]] = relationship(
+        "ConnectedAccount",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="ConnectedAccount.created_at.desc()",
+    )
+
+    consents: Mapped[list["AccountConsent"]] = relationship(
+        "AccountConsent",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="AccountConsent.created_at.desc()",
+    )
+
+    sync_runs: Mapped[list["SyncRun"]] = relationship(
+        "SyncRun",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="SyncRun.started_at.desc()",
     )
 
     @property
