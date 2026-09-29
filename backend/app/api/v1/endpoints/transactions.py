@@ -44,6 +44,7 @@ def create_transaction(
         description=payload.description.strip() if payload.description else None,
         payment_method=payload.payment_method,
         transaction_date=tx_date,
+        source="MANUAL",
     )
     db.add(transaction)
     db.commit()

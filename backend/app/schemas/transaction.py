@@ -114,6 +114,12 @@ class TransactionResponse(BaseModel):
     description: Optional[str] = None
     payment_method: str
     transaction_date: datetime.datetime
+    source: str = "MANUAL"
+    provider: Optional[str] = None
+    account_id: Optional[int] = None
+    external_transaction_id: Optional[str] = None
+    raw_bank_description: Optional[str] = None
+    imported_at: Optional[datetime.datetime] = None
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
