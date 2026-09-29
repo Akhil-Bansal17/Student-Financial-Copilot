@@ -5,6 +5,7 @@ from app.models.transaction import Transaction
 from app.models.budget import Budget
 from app.models.goal import Goal, GoalContribution
 from app.models.account import ConnectedAccount, AccountConsent, SyncRun
+from app.models.reconciliation import TransactionReconciliation
 
 __all__ = [
     "Base",
@@ -17,5 +18,6 @@ __all__ = [
     "ConnectedAccount",
     "AccountConsent",
     "SyncRun",
+    "TransactionReconciliation",
 ]
 

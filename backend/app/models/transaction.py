@@ -75,6 +75,18 @@ class Transaction(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+    # Reconciliation fields
+    reconciled_with_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("transactions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    reconciliation_status: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="UNRECONCILED",
+        server_default="UNRECONCILED",
+    )  # UNRECONCILED, RECONCILED, PENDING_REVIEW, DUPLICATE_EXCLUDED
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.datetime.now(datetime.timezone.utc),

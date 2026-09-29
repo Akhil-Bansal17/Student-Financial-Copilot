@@ -41,6 +41,15 @@ class ConnectedAccount(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+    # Background sync cursor & concurrency locking
+    sync_cursor: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    sync_lock_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    sync_lock_token: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    sync_retry_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    next_retry_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_sync_status: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # SUCCESS, FAILED, PARTIAL
+    last_sync_error: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.datetime.now(datetime.timezone.utc),
@@ -126,9 +135,14 @@ class SyncRun(Base):
     )
     provider: Mapped[str] = mapped_column(String(50), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="RUNNING")  # RUNNING, SUCCESS, PARTIAL, FAILED
+    trigger_type: Mapped[str] = mapped_column(String(20), nullable=False, default="MANUAL", server_default="MANUAL")  # MANUAL, AUTOMATIC, RETRY
     transactions_fetched: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     transactions_imported: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     transactions_skipped: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    transactions_reconciled: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    transactions_pending_review: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    error_code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     error_message: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     started_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
