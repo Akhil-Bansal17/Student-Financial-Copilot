@@ -117,6 +117,18 @@ class FinancialContextBuilder:
             for ins in insights_res.insights
         ]
 
+        # 8. Authoritative Connected Bank Accounts (Phase 9B)
+        from app.models.account import ConnectedAccount
+        connected_accs = (
+            db.query(ConnectedAccount)
+            .filter(ConnectedAccount.user_id == user_id, ConnectedAccount.status == "ACTIVE")
+            .all()
+        )
+        total_connected_balance = sum(
+            (acc.current_balance for acc in connected_accs if acc.current_balance is not None),
+            Decimal("0.00"),
+        )
+
         return {
             "period": period_str,
             "has_sufficient_data": has_sufficient_data,
@@ -127,6 +139,12 @@ class FinancialContextBuilder:
                 "total_expenses": str(summary.total_expenses),
                 "net_cash_flow": str(summary.net_cash_flow),
                 "currency": summary.currency,
+            },
+            "connected_accounts": {
+                "has_connected_bank": len(connected_accs) > 0,
+                "active_accounts_count": len(connected_accs),
+                "total_connected_bank_balance": str(total_connected_balance),
+                "institutions": [acc.institution_name for acc in connected_accs],
             },
             "monthly_analytics": {
                 "year": monthly.year,
