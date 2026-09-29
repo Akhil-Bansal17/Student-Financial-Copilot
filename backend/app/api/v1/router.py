@@ -1,5 +1,16 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, auth, profile, transactions, analytics, budgets, goals, insights, copilot
+from app.api.v1.endpoints import (
+    health,
+    auth,
+    profile,
+    transactions,
+    analytics,
+    budgets,
+    goals,
+    insights,
+    copilot,
+    accounts,
+)
 
 api_router = APIRouter()
 
@@ -29,4 +40,7 @@ api_router.include_router(insights.router, prefix="/insights", tags=["Insights"]
 
 # Register AI Copilot router
 api_router.include_router(copilot.router, prefix="/ai", tags=["AI Copilot"])
+
+# Register connected financial accounts router (Phase 9A)
+api_router.include_router(accounts.router, prefix="/accounts", tags=["Accounts"])
 
