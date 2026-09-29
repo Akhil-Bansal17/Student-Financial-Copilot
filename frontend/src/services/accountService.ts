@@ -4,6 +4,10 @@ import type {
   ConnectedAccountListResponse,
   SyncRun,
   AccountDisconnectResponse,
+  ConsentInitiationRequest,
+  ConsentInitiationResponse,
+  ConsentCallbackRequest,
+  ConsentCallbackResponse,
 } from '@/types/account'
 
 export const accountService = {
@@ -14,6 +18,20 @@ export const accountService = {
   async connectMock(): Promise<ConnectedAccount> {
     return apiClient<ConnectedAccount>('/api/v1/accounts/connect/mock', {
       method: 'POST',
+    })
+  },
+
+  async initiateConsent(req: ConsentInitiationRequest = {}): Promise<ConsentInitiationResponse> {
+    return apiClient<ConsentInitiationResponse>('/api/v1/accounts/consent/initiate', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    })
+  },
+
+  async handleConsentCallback(req: ConsentCallbackRequest): Promise<ConsentCallbackResponse> {
+    return apiClient<ConsentCallbackResponse>('/api/v1/accounts/consent/callback', {
+      method: 'POST',
+      body: JSON.stringify(req),
     })
   },
 
@@ -37,3 +55,4 @@ export const accountService = {
     return apiClient<SyncRun[]>(`/api/v1/accounts/${id}/sync-history?limit=${limit}`)
   },
 }
+

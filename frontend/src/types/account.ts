@@ -46,3 +46,32 @@ export interface AccountDisconnectResponse {
   message: string
   account: ConnectedAccount
 }
+
+export interface ConsentInitiationRequest {
+  provider?: string
+  customer_identifier?: string
+  redirect_url?: string
+}
+
+export interface ConsentInitiationResponse {
+  consent_id: string
+  authorization_url: string
+  state: string
+  status: string
+  provider: string
+}
+
+export interface ConsentCallbackRequest {
+  consent_id: string
+  state: string
+  status: string
+}
+
+export interface ConsentCallbackResponse {
+  success: boolean
+  message: string
+  accounts: ConnectedAccount[]
+  status: string
+  sync_result: SyncRun | null
+}
+

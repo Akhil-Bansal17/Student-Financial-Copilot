@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import {
   Building2,
@@ -15,6 +15,10 @@ import {
   Clock,
   ArrowDownLeft,
   ArrowUpRight,
+  Landmark,
+  X,
+  FileText,
+  KeyRound,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -30,6 +34,10 @@ import type { ConnectedAccount, SyncRun } from '@/types/account'
 export function ConnectedAccountsPage() {
   const [syncingAccountId, setSyncingAccountId] = useState<number | null>(null)
   const [expandedHistoryId, setExpandedHistoryId] = useState<number | null>(null)
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false)
+  const [selectedProvider, setSelectedProvider] = useState<'setu_aa' | 'mock_bank'>('setu_aa')
+  const [customerVpa, setCustomerVpa] = useState('student@setu')
+  const [isAuthorizingAA, setIsAuthorizingAA] = useState(false)
   const [feedbackMessage, setFeedbackMessage] = useState<{
     type: 'success' | 'error'
     text: string
@@ -55,20 +63,70 @@ export function ConnectedAccountsPage() {
     enabled: !!expandedHistoryId,
   })
 
+  // 3. Detect external Account Aggregator callback on mount (?consent_id=...&state=...)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const consentId = params.get('consent_id')
+    const state = params.get('state')
+    const statusParam = params.get('status') || 'ACTIVE'
+
+    if (consentId && state) {
+      const handleCallback = async () => {
+        try {
+          setFeedbackMessage({
+            type: 'success',
+            text: 'Verifying Account Aggregator consent and discovering authorized bank accounts...',
+          })
+          const res = await accountService.handleConsentCallback({
+            consent_id: consentId,
+            state: state,
+            status: statusParam,
+          })
+
+          setFeedbackMessage({
+            type: 'success',
+            text: res.message || 'Account successfully connected and synchronized via Account Aggregator sandbox.',
+          })
+
+          // Invalidate all financial queries across the app
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ['connected-accounts'] }),
+            queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+            queryClient.invalidateQueries({ queryKey: ['financial-summary'] }),
+            queryClient.invalidateQueries({ queryKey: ['analytics'] }),
+            queryClient.invalidateQueries({ queryKey: ['budgets'] }),
+            queryClient.invalidateQueries({ queryKey: ['insights'] }),
+          ])
+        } catch (err: unknown) {
+          setFeedbackMessage({
+            type: 'error',
+            text: err instanceof Error ? err.message : 'Failed to complete Account Aggregator consent callback.',
+          })
+        } finally {
+          // Clean URL without refreshing page
+          window.history.replaceState({}, document.title, window.location.pathname)
+        }
+      }
+
+      handleCallback()
+    }
+  }, [])
+
   // Connect mock account mutation
-  const connectMutation = useMutation({
+  const connectMockMutation = useMutation({
     mutationFn: () => accountService.connectMock(),
     onSuccess: async () => {
+      setIsConnectModalOpen(false)
       setFeedbackMessage({
         type: 'success',
-        text: 'Sandbox demo bank account connected successfully.',
+        text: 'Demo student bank account connected successfully.',
       })
       await queryClient.invalidateQueries({ queryKey: ['connected-accounts'] })
     },
     onError: (err: unknown) => {
       setFeedbackMessage({
         type: 'error',
-        text: err instanceof Error ? err.message : 'Failed to connect mock bank account.',
+        text: err instanceof Error ? err.message : 'Failed to connect demo bank account.',
       })
     },
   })
@@ -91,6 +149,52 @@ export function ConnectedAccountsPage() {
       })
     },
   })
+
+  // AA Consent flow trigger
+  const handleAuthorizeAA = async () => {
+    try {
+      setIsAuthorizingAA(true)
+      setFeedbackMessage(null)
+
+      // Step 1: Initiate consent on backend
+      const initRes = await accountService.initiateConsent({
+        provider: 'setu_aa',
+        customer_identifier: customerVpa.trim() || 'student@setu',
+        redirect_url: window.location.origin + '/connected-accounts',
+      })
+
+      // Step 2: Handle authorization flow
+      // In sandbox mode with simulation or immediate approval, complete the callback
+      const callbackRes = await accountService.handleConsentCallback({
+        consent_id: initRes.consent_id,
+        state: initRes.state,
+        status: 'ACTIVE',
+      })
+
+      setIsConnectModalOpen(false)
+      setFeedbackMessage({
+        type: 'success',
+        text: callbackRes.message || 'Account Aggregator sandbox consent approved and account linked!',
+      })
+
+      // Invalidate all financial queries across the app
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['connected-accounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+        queryClient.invalidateQueries({ queryKey: ['financial-summary'] }),
+        queryClient.invalidateQueries({ queryKey: ['analytics'] }),
+        queryClient.invalidateQueries({ queryKey: ['budgets'] }),
+        queryClient.invalidateQueries({ queryKey: ['insights'] }),
+      ])
+    } catch (err: unknown) {
+      setFeedbackMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Failed to complete Account Aggregator consent flow.',
+      })
+    } finally {
+      setIsAuthorizingAA(false)
+    }
+  }
 
   // Handle manual sync trigger
   const handleSync = async (account: ConnectedAccount) => {
@@ -143,16 +247,11 @@ export function ConnectedAccountsPage() {
 
         <Button
           size="sm"
-          onClick={() => connectMutation.mutate()}
-          disabled={connectMutation.isPending}
+          onClick={() => setIsConnectModalOpen(true)}
           className="gap-1.5 rounded-xl shadow-xs self-start sm:self-auto"
         >
-          {connectMutation.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <PlusCircle className="h-4 w-4" />
-          )}
-          <span>Connect Demo Account</span>
+          <PlusCircle className="h-4 w-4" />
+          <span>Connect Bank Account</span>
         </Button>
       </div>
 
@@ -198,7 +297,7 @@ export function ConnectedAccountsPage() {
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Designed according to India’s RBI Account Aggregator framework. Real bank passwords, netbanking credentials, and UPI PINs are never requested or stored. Mock data is deterministic and strictly isolated to your session.
+              Designed according to India’s RBI Account Aggregator framework (Setu AA Sandbox). Real netbanking passwords, bank login credentials, and UPI PINs are never requested or stored. All financial flows use cryptographically signed consent artifacts and user-isolated sandbox data.
             </p>
           </div>
         </div>
@@ -252,9 +351,9 @@ export function ConnectedAccountsPage() {
       ) : accounts.length === 0 ? (
         <EmptyState
           title="No connected bank accounts"
-          description="Connect a demo student bank account to simulate automated transaction feeds, balance queries, and Account Aggregator consent flows."
+          description="Connect an account via Account Aggregator Sandbox to simulate automated transaction feeds, balance queries, and consent lifecycle flows."
           actionLabel="Connect Demo Bank Account"
-          onAction={() => connectMutation.mutate()}
+          onAction={() => connectMockMutation.mutate()}
         />
       ) : (
         <div className="space-y-4">
@@ -263,6 +362,7 @@ export function ConnectedAccountsPage() {
             const isDisconnecting = disconnectMutation.isPending
             const isHistoryOpen = expandedHistoryId === account.id
             const isActive = account.status === 'ACTIVE'
+            const isAASandbox = account.provider.toLowerCase().includes('setu') || account.provider.toLowerCase().includes('aggregator')
 
             const lastSyncedDisplay = account.last_synced_at
               ? new Intl.DateTimeFormat('en-IN', {
@@ -291,7 +391,7 @@ export function ConnectedAccountsPage() {
                             {account.institution_name}
                           </h2>
                           <Badge variant="outline" className="text-[10px] text-primary border-primary/30">
-                            Sandbox
+                            {isAASandbox ? 'AA Sandbox' : 'Sandbox'}
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">
@@ -373,8 +473,8 @@ export function ConnectedAccountsPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => connectMutation.mutate()}
-                          disabled={connectMutation.isPending}
+                          onClick={() => (isAASandbox ? setIsConnectModalOpen(true) : connectMockMutation.mutate())}
+                          disabled={connectMockMutation.isPending}
                           className="rounded-xl text-xs gap-1.5 h-9"
                         >
                           <PlusCircle className="h-3.5 w-3.5" />
@@ -476,6 +576,181 @@ export function ConnectedAccountsPage() {
               </Card>
             )
           })}
+        </div>
+      )}
+
+      {/* 6. Connect Account Modal Dialog */}
+      {isConnectModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="connect-dialog-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs animate-in fade-in"
+        >
+          <div className="bg-card border border-border rounded-2xl w-full max-w-lg shadow-xl overflow-hidden animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-border flex items-center justify-between">
+              <div>
+                <h3 id="connect-dialog-title" className="text-base font-semibold text-foreground flex items-center gap-2">
+                  <Landmark className="h-5 w-5 text-primary" />
+                  <span>Connect Bank Account</span>
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Select a sandbox integration method below
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsConnectModalOpen(false)}
+                className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4 text-xs">
+              {/* Provider Selection */}
+              <div className="space-y-2.5">
+                <span className="font-semibold text-foreground block">
+                  Select Sandbox Provider:
+                </span>
+
+                {/* Option 1: Setu AA Sandbox */}
+                <div
+                  onClick={() => setSelectedProvider('setu_aa')}
+                  className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                    selectedProvider === 'setu_aa'
+                      ? 'border-primary bg-primary/5 text-foreground ring-1 ring-primary'
+                      : 'border-border/80 hover:border-border text-muted-foreground'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground text-sm">
+                          Account Aggregator Sandbox
+                        </span>
+                        <Badge variant="outline" className="text-[10px] text-primary border-primary/30">
+                          Setu / RBI AA Standard
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Simulates India’s RBI Account Aggregator consent flow, financial account discovery, and periodic automated data synchronization.
+                      </p>
+                    </div>
+                  </div>
+
+                  {selectedProvider === 'setu_aa' && (
+                    <div className="mt-3.5 pt-3 border-t border-primary/20 space-y-2 text-xs">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <FileText className="h-3.5 w-3.5 text-primary" />
+                        <span>Purpose: <strong>Personal Finance Management</strong></span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                        <span>Scope: <strong>Deposit Accounts & 12 Months Transactions</strong></span>
+                      </div>
+
+                      <div className="space-y-1 pt-1">
+                        <label className="text-[11px] font-medium text-foreground block">
+                          Student Sandbox AA Handle / Phone:
+                        </label>
+                        <input
+                          type="text"
+                          value={customerVpa}
+                          onChange={(e) => setCustomerVpa(e.target.value)}
+                          placeholder="student@setu"
+                          className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Option 2: Quick Demo Bank */}
+                <div
+                  onClick={() => setSelectedProvider('mock_bank')}
+                  className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                    selectedProvider === 'mock_bank'
+                      ? 'border-primary bg-primary/5 text-foreground ring-1 ring-primary'
+                      : 'border-border/80 hover:border-border text-muted-foreground'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground text-sm">
+                          Quick Demo Student Bank
+                        </span>
+                        <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                          Mock Sandbox
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Instantly links a pre-configured sandbox bank account for offline UI and ledger verification.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Security & Regulatory Notice */}
+              <div className="p-3 bg-muted/40 rounded-xl flex items-start space-x-2 text-[11px] text-muted-foreground border border-border/50">
+                <KeyRound className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <p>
+                  Zero credential collection: Student Financial Copilot never asks for netbanking passwords, debit card PINs, or UPI PINs.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-muted/20 border-t border-border flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsConnectModalOpen(false)}
+                disabled={isAuthorizingAA || connectMockMutation.isPending}
+                className="rounded-xl text-xs h-9"
+              >
+                Cancel
+              </Button>
+
+              {selectedProvider === 'setu_aa' ? (
+                <Button
+                  size="sm"
+                  onClick={handleAuthorizeAA}
+                  disabled={isAuthorizingAA}
+                  className="rounded-xl text-xs gap-1.5 h-9"
+                >
+                  {isAuthorizingAA ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Authorizing in AA Sandbox...</span>
+                    </>
+                  ) : (
+                    <span>Authorize in AA Sandbox</span>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={() => connectMockMutation.mutate()}
+                  disabled={connectMockMutation.isPending}
+                  className="rounded-xl text-xs gap-1.5 h-9"
+                >
+                  {connectMockMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Connecting...</span>
+                    </>
+                  ) : (
+                    <span>Connect Demo Bank</span>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
