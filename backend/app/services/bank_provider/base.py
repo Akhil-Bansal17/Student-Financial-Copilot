@@ -39,9 +39,21 @@ class ProviderDataError(BankProviderError):
 
 
 class ConsentRevokedError(BankProviderError):
-    """Raised when operation fails because user consent was revoked or has expired."""
-    def __init__(self, message: str = "Account Aggregator consent has expired or was revoked", provider: str = "unknown"):
+    """Raised when operation fails because user consent was revoked."""
+    def __init__(self, message: str = "Account Aggregator consent was revoked", provider: str = "unknown"):
         super().__init__(message, provider=provider, status_code=403)
+
+
+class ConsentExpiredError(BankProviderError):
+    """Raised when operation fails because user consent has expired."""
+    def __init__(self, message: str = "Account Aggregator consent has expired", provider: str = "unknown"):
+        super().__init__(message, provider=provider, status_code=403)
+
+
+class ConsentRejectedError(BankProviderError):
+    """Raised when user denies or rejects consent authorization in Account Aggregator webview."""
+    def __init__(self, message: str = "Account Aggregator consent was rejected by user", provider: str = "unknown"):
+        super().__init__(message, provider=provider, status_code=400)
 
 
 class ProviderAccountData(BaseModel):
@@ -99,6 +111,29 @@ class BankDataProvider(ABC):
         """Initiate or mock an account connection, returning account details and consent metadata."""
         pass
 
+    def initiate_consent(
+        self,
+        user_id: int,
+        customer_identifier: Optional[str] = None,
+        redirect_url: Optional[str] = None,
+    ) -> Tuple[str, str]:
+        """
+        Initiate an Account Aggregator consent request.
+        Returns a tuple of (consent_id, authorization_url).
+        """
+        now = datetime.datetime.now(datetime.timezone.utc)
+        consent_id = f"consent_{self.get_provider_name()}_{user_id}_{int(now.timestamp())}"
+        target_url = redirect_url or "/connected-accounts"
+        return consent_id, target_url
+
+    def check_consent_status(self, consent_id: str) -> str:
+        """Query provider to check actual status of a consent artifact (e.g. 'ACTIVE', 'PENDING', 'REJECTED', 'EXPIRED')."""
+        return "ACTIVE"
+
+    def discover_accounts(self, consent_id: str) -> List[ProviderAccountData]:
+        """Fetch discovered financial accounts authorized under this consent."""
+        return []
+
     @abstractmethod
     def fetch_transactions(
         self,
@@ -118,3 +153,4 @@ class BankDataProvider(ABC):
     def disconnect_account(self, account_id: str) -> bool:
         """Inform the provider to revoke consent and tear down active data sessions."""
         pass
+

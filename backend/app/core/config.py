@@ -46,6 +46,18 @@ class Settings(BaseSettings):
     AI_MAX_HISTORY_MESSAGES: int = 10
     AI_RATE_LIMIT_PER_MINUTE: int = 30
 
+    # Bank Sync & Account Aggregator (AA) Sandbox Configuration (Phase 9A & 9B)
+    BANK_PROVIDER: str = "mock_bank"  # "mock_bank", "setu_aa", "account_aggregator"
+    AA_PROVIDER: str = "setu_aa"
+    AA_BASE_URL: str = "https://fiu-sandbox.setu.co"
+    AA_CLIENT_ID: str = ""
+    AA_CLIENT_SECRET: str = ""
+    AA_PRODUCT_INSTANCE_ID: str = ""
+    AA_WEBHOOK_SECRET: str = ""
+    AA_REDIRECT_URL: str = "http://localhost:5173/connected-accounts"
+    AA_TIMEOUT_SECONDS: int = 15
+    AA_SANDBOX_SIMULATE: bool = True
+
     @field_validator("SECRET_KEY", mode="after")
     @classmethod
     def validate_production_secret(cls, v: str, info) -> str:

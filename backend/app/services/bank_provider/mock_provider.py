@@ -71,6 +71,38 @@ class MockBankProvider(BankDataProvider):
 
         return account, consent
 
+    def initiate_consent(
+        self,
+        user_id: int,
+        customer_identifier: Optional[str] = None,
+        redirect_url: Optional[str] = None,
+    ) -> Tuple[str, str]:
+        if self.simulate_timeout:
+            raise ProviderTimeoutError("Consent initiation timed out", provider=self.PROVIDER_NAME)
+        if self.simulate_unavailable:
+            raise ProviderUnavailableError("Sandbox bank is temporarily offline", provider=self.PROVIDER_NAME)
+        now = datetime.datetime.now(datetime.timezone.utc)
+        consent_id = f"mock_consent_{user_id}_{int(now.timestamp())}"
+        target_url = redirect_url or "/connected-accounts"
+        return consent_id, target_url
+
+    def check_consent_status(self, consent_id: str) -> str:
+        return "ACTIVE"
+
+    def discover_accounts(self, consent_id: str) -> List[ProviderAccountData]:
+        now = datetime.datetime.now(datetime.timezone.utc)
+        return [
+            ProviderAccountData(
+                provider_account_id=f"mock_acc_savings_01",
+                institution_name=self.DEFAULT_INSTITUTION,
+                account_type="savings",
+                masked_account_number="••••5821",
+                currency="INR",
+                current_balance=self.custom_balance if self.custom_balance is not None else self.DEFAULT_BALANCE,
+                balance_as_of=now,
+            )
+        ]
+
     def fetch_balance(self, account_id: str) -> Tuple[Decimal, datetime.datetime]:
         if self.simulate_timeout:
             raise ProviderTimeoutError("Fetch balance timed out", provider=self.PROVIDER_NAME)
