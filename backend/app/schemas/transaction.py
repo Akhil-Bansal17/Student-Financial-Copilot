@@ -27,6 +27,7 @@ class TransactionCreate(BaseModel):
     transaction_type: Literal["income", "expense"]
     amount: Decimal = Field(..., description="Transaction amount (must be positive)")
     category: str = Field(..., max_length=50)
+    merchant: Optional[str] = Field(default=None, max_length=100)
     description: Optional[str] = Field(default=None, max_length=255)
     payment_method: str = Field(..., max_length=50)
     transaction_date: Optional[datetime.datetime] = None
@@ -66,9 +67,11 @@ class TransactionUpdate(BaseModel):
     transaction_type: Optional[Literal["income", "expense"]] = None
     amount: Optional[Decimal] = None
     category: Optional[str] = Field(default=None, max_length=50)
+    merchant: Optional[str] = Field(default=None, max_length=100)
     description: Optional[str] = Field(default=None, max_length=255)
     payment_method: Optional[str] = Field(default=None, max_length=50)
     transaction_date: Optional[datetime.datetime] = None
+    remember_merchant_preference: Optional[bool] = False
 
     @field_validator("amount", mode="after")
     @classmethod
@@ -111,6 +114,11 @@ class TransactionResponse(BaseModel):
     transaction_type: str
     amount: Decimal
     category: str
+    merchant: Optional[str] = None
+    normalized_merchant: Optional[str] = None
+    category_confidence: Optional[str] = None
+    categorization_source: Optional[str] = None
+    status: str = "POSTED"
     description: Optional[str] = None
     payment_method: str
     transaction_date: datetime.datetime
@@ -119,6 +127,8 @@ class TransactionResponse(BaseModel):
     account_id: Optional[int] = None
     external_transaction_id: Optional[str] = None
     raw_bank_description: Optional[str] = None
+    reconciled_with_id: Optional[int] = None
+    reconciliation_status: Optional[str] = "UNRECONCILED"
     imported_at: Optional[datetime.datetime] = None
     created_at: datetime.datetime
     updated_at: datetime.datetime
@@ -131,6 +141,18 @@ class TransactionListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class BulkCategoryUpdatePayload(BaseModel):
+    transaction_ids: List[int] = Field(..., min_length=1, max_length=100)
+    category: str = Field(..., max_length=50)
+    update_merchant_preference: bool = False
+
+
+class BulkCategoryUpdateResponse(BaseModel):
+    updated_count: int
+    category: str
+    preference_saved: bool
 
 
 class FinancialSummaryResponse(BaseModel):

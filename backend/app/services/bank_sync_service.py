@@ -14,6 +14,8 @@ from app.core.constants import EXPENSE_CATEGORIES, INCOME_CATEGORIES, PAYMENT_ME
 from app.services.bank_provider.base import BankProviderError
 from app.services.bank_provider.factory import get_bank_provider
 from app.services.reconciliation_service import TransactionReconciliationService
+from app.services.transaction_normalization_service import TransactionNormalizationService
+from app.services.categorization_service import CategorizationService
 
 
 class BankSyncService:
@@ -275,18 +277,34 @@ class BankSyncService:
                 if tx_date.tzinfo is None:
                     tx_date = tx_date.replace(tzinfo=datetime.timezone.utc)
 
-                if ptx.transaction_type == "expense":
-                    category = ptx.category if ptx.category in EXPENSE_CATEGORIES else "Other"
-                else:
-                    category = ptx.category if ptx.category in INCOME_CATEGORIES else "Other"
-
                 payment_method = ptx.payment_method if ptx.payment_method in PAYMENT_METHODS else "Bank Transfer"
+
+                # Extract and normalize merchant
+                norm_merchant, display_merchant = TransactionNormalizationService.extract_merchant(
+                    raw_description=ptx.raw_bank_description,
+                    description=ptx.description,
+                )
+
+                # Deterministic categorization with confidence scoring
+                cat_result = CategorizationService.categorize(
+                    db=db,
+                    user_id=user.id,
+                    transaction_type=ptx.transaction_type,
+                    normalized_merchant=norm_merchant,
+                    raw_description=ptx.raw_bank_description,
+                    provider_category=ptx.category,
+                )
 
                 normalized_tx = Transaction(
                     user_id=user.id,
                     transaction_type=ptx.transaction_type,
                     amount=ptx.amount.quantize(Decimal("0.01")),
-                    category=category,
+                    category=cat_result.category,
+                    merchant=display_merchant or norm_merchant,
+                    normalized_merchant=norm_merchant,
+                    category_confidence=cat_result.confidence,
+                    categorization_source=cat_result.source,
+                    status="POSTED",
                     description=ptx.description.strip() if ptx.description else None,
                     payment_method=payment_method,
                     transaction_date=tx_date,

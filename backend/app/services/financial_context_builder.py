@@ -166,6 +166,53 @@ class FinancialContextBuilder:
             or 0
         )
 
+        # 9. Authoritative Recent Transactions & Merchant Intelligence (Phase 11)
+        from app.models.transaction import Transaction
+        recent_txs = (
+            db.query(Transaction)
+            .filter(Transaction.user_id == user_id)
+            .order_by(Transaction.transaction_date.desc(), Transaction.id.desc())
+            .limit(10)
+            .all()
+        )
+        recent_transactions_serialized = [
+            {
+                "date": tx.transaction_date.strftime("%Y-%m-%d"),
+                "type": tx.transaction_type,
+                "amount": str(tx.amount),
+                "category": tx.category,
+                "merchant": tx.normalized_merchant or tx.merchant or tx.description,
+                "source": tx.source,
+                "reconciliation_status": tx.reconciliation_status,
+            }
+            for tx in recent_txs
+        ]
+
+        top_merchants_query = (
+            db.query(
+                Transaction.normalized_merchant,
+                func.sum(Transaction.amount).label("total_spent"),
+                func.count(Transaction.id).label("tx_count"),
+            )
+            .filter(
+                Transaction.user_id == user_id,
+                Transaction.transaction_type == "expense",
+                Transaction.normalized_merchant.isnot(None),
+            )
+            .group_by(Transaction.normalized_merchant)
+            .order_by(func.sum(Transaction.amount).desc())
+            .limit(5)
+            .all()
+        )
+        top_merchants_serialized = [
+            {
+                "merchant": row[0],
+                "total_spent": str(row[1]),
+                "transaction_count": row[2],
+            }
+            for row in top_merchants_query
+        ]
+
         return {
             "period": period_str,
             "has_sufficient_data": has_sufficient_data,
@@ -201,6 +248,8 @@ class FinancialContextBuilder:
             },
             "top_expense_categories": top_categories_serialized,
             "income_sources": income_categories_serialized,
+            "recent_transactions": recent_transactions_serialized,
+            "top_merchants": top_merchants_serialized,
             "overall_budget": overall_budget_serialized,
             "category_budgets": budgets_serialized,
             "goals": goals_serialized,

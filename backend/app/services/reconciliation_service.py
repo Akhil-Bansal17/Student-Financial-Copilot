@@ -11,6 +11,8 @@ from app.models.account import ConnectedAccount
 from app.models.transaction import Transaction
 from app.models.reconciliation import TransactionReconciliation
 from app.services.bank_provider.base import ProviderTransactionData
+from app.services.transaction_normalization_service import TransactionNormalizationService
+from app.services.categorization_service import CategorizationService
 
 
 class TransactionReconciliationService:
@@ -249,6 +251,17 @@ class TransactionReconciliationService:
         manual_tx.sync_run_id = sync_run_id
         manual_tx.imported_at = now
 
+        # Enrich merchant normalization without overwriting user manual category
+        if not manual_tx.normalized_merchant:
+            norm_m, disp_m = TransactionNormalizationService.extract_merchant(
+                raw_description=bank_dto.raw_bank_description,
+                description=bank_dto.description,
+            )
+            if norm_m:
+                manual_tx.normalized_merchant = norm_m
+                if not manual_tx.merchant:
+                    manual_tx.merchant = disp_m
+
         return reconciliation
 
     @classmethod
@@ -337,6 +350,15 @@ class TransactionReconciliationService:
             manual_tx.external_transaction_id = rec.external_transaction_id
             manual_tx.raw_bank_description = rec.raw_bank_description
             manual_tx.imported_at = now
+            if not manual_tx.normalized_merchant:
+                norm_m, disp_m = TransactionNormalizationService.extract_merchant(
+                    raw_description=rec.raw_bank_description,
+                    description=rec.bank_description,
+                )
+                if norm_m:
+                    manual_tx.normalized_merchant = norm_m
+                    if not manual_tx.merchant:
+                        manual_tx.merchant = disp_m
 
         rec.status = "MATCHED"
         rec.reconciled_at = now
@@ -391,11 +413,30 @@ class TransactionReconciliationService:
         account = db.query(ConnectedAccount).filter(ConnectedAccount.id == rec.account_id).first()
         provider = account.provider if account else "bank_sync"
 
+        norm_m, disp_m = TransactionNormalizationService.extract_merchant(
+            raw_description=rec.raw_bank_description,
+            description=rec.bank_description,
+        )
+        tx_type = manual_tx.transaction_type if manual_tx else "expense"
+        cat_result = CategorizationService.categorize(
+            db=db,
+            user_id=user.id,
+            transaction_type=tx_type,
+            normalized_merchant=norm_m,
+            raw_description=rec.raw_bank_description,
+            provider_category=rec.bank_category,
+        )
+
         new_bank_tx = Transaction(
             user_id=user.id,
-            transaction_type=manual_tx.transaction_type if manual_tx else "expense",
+            transaction_type=tx_type,
             amount=rec.bank_amount,
-            category=rec.bank_category or "Other",
+            category=cat_result.category,
+            merchant=disp_m or norm_m,
+            normalized_merchant=norm_m,
+            category_confidence=cat_result.confidence,
+            categorization_source=cat_result.source,
+            status="POSTED",
             description=rec.bank_description or rec.raw_bank_description or "Bank Transaction",
             payment_method="Bank Transfer",
             transaction_date=rec.bank_date,
