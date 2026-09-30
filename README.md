@@ -183,32 +183,45 @@ npm run build
 
 ---
 
-## 🧭 Initial Routes
+## 🧭 Application Routes
 
 | Route | Purpose | Navigation |
 |---|---|---|
 | `/` | Dashboard with "Safe to spend" hero card, balance row, recent transactions, insights, upcoming bills | Bottom Nav (Home) / Desktop Sidebar |
-| `/activity` | Transaction history & category filters | Bottom Nav (Activity) / Desktop Sidebar |
-| `/insights` | Spending analytics & trends | Bottom Nav (Insights) / Desktop Sidebar |
-| `/goals` | Savings targets & progress | Bottom Nav (Goals) / Desktop Sidebar |
-| `/more` | Profile, settings, currency preferences | Bottom Nav (More) / Desktop Sidebar |
-| `/login` | Authentication placeholder | Auth flow |
-| `/register` | Registration placeholder | Auth flow |
-| `/onboarding` | Student profile onboarding placeholder | First-run flow |
+| `/activity` | Transaction history, advanced filters, search, bulk updates & transaction detail sheet | Bottom Nav (Activity) / Desktop Sidebar |
+| `/copilot` | Evidence-based AI Copilot advisor with contextual insight chips and bank balance awareness | Bottom Nav (Copilot) / Desktop Sidebar |
+| `/insights` | Spending analytics, monthly trends, breakdown charts & high-priority financial observations | Bottom Nav (Insights) / Desktop Sidebar |
+| `/budgets` | Student monthly category budgets with live spend tracking & safe daily allowance calculations | Desktop Sidebar / Quick Links |
+| `/goals` | Savings targets, progress tracking, milestone forecasts & contribution simulation | Bottom Nav (Goals) / Desktop Sidebar |
+| `/connected-accounts` | Bank account aggregator sandbox, Setu provider adapter, consent flow & real-time sync | Desktop Sidebar / Settings |
+| `/more` | Profile summary, financial health score, settings, currency preferences & sign out | Bottom Nav (More) / Desktop Sidebar |
+| `/login` | JWT authentication & user login | Auth flow |
+| `/register` | New student account registration | Auth flow |
+| `/onboarding` | 3-step student profile onboarding (academics, funding sources, financial focus) | First-run flow |
 
 ---
 
-## 🗺 Roadmap
+## 🗺 Roadmap & Implemented Phases
 
-- [x] **Phase 1: Architecture & Mobile-First Foundation** *(Current Phase)*
-  - Monorepo structure, design system, responsive shell (bottom nav + desktop sidebar), PWA manifest, FastAPI health endpoint, SQLAlchemy & Alembic scaffolding, Docker compose, test suites.
-- [ ] **Phase 2: Authentication & User Profiles**
-  - JWT auth, session management, college/semester profile attributes.
-- [ ] **Phase 3: Financial Core & Ledger**
-  - Strict double-entry transaction store, deterministic balance aggregations, category management.
-- [ ] **Phase 4: Student Budgeting & "Safe-to-Spend" Algorithm**
-  - Dynamic daily allowance calculations factoring in fixed student expenses (hostel/fees/bills).
-- [ ] **Phase 5: Savings Goals & Forecasting**
-  - Emergency funds, gadget/travel targets, compound savings simulations.
-- [ ] **Phase 6: Evidence-Based AI Copilot**
-  - Observational LLM layer explaining verified domain numbers and generating student recommendations.
+- [x] **Phase 1: Architecture & Mobile-First Foundation**
+  - Monorepo structure, Tailwind CSS + shadcn/ui primitives, responsive shell (bottom nav + desktop sidebar), PWA manifest, FastAPI health endpoint, SQLAlchemy & Alembic scaffolding, Docker compose.
+- [x] **Phase 2: Authentication & User Profiles**
+  - JWT auth with Argon2id password hashing, session tokens, protected API routes, registration, login, and user profile management.
+- [x] **Phase 3: Financial Core, Ledger & Transactions**
+  - Robust transaction store, deterministic balance aggregations, category classification, manual transaction creation, and multi-month activity filters.
+- [x] **Phase 4: Student Budgeting & "Safe-to-Spend" Engine**
+  - Category budget tracking, expense velocity indicators, and daily safe-to-spend allowance calculations accounting for fixed commitments.
+- [x] **Phase 5: Savings Goals & Forecasting**
+  - Milestone targets, target completion date estimates, emergency fund tracking, and visual progress indicators.
+- [x] **Phase 6: Advanced Financial Insights**
+  - Heuristic spending anomaly detection, recurring expense tracking, discretionary vs. non-discretionary categorization, and actionable tip cards.
+- [x] **Phase 7: Evidence-Based AI Copilot**
+  - Observational LLM layer grounding responses on verified ledger figures, suggested question chips, and multi-turn financial guidance.
+- [x] **Phase 8: Student Onboarding Flow**
+  - Interactive multi-step setup collecting academic status, funding sources (pocket money, part-time, scholarship, allowance), and savings priorities.
+- [x] **Phase 9: Account Aggregator Sandbox & Bank Sync Core**
+  - Setu Account Aggregator adapter, secure HMAC state tokens for consent redirects, deterministic mock bank data provider, and bank synchronization service with deduplication.
+- [x] **Phase 10: Automatic Bank Sync & Financial Reconciliation**
+  - In-process background sync scheduler, distributed concurrency locking, incremental cursors, bounded retries, and deterministic transaction reconciliation engine.
+- [x] **Phase 11: Transaction Intelligence & Merchant Normalization**
+  - Deterministic merchant extraction rules, user custom merchant preferences, bulk transaction category updates, slide-over TransactionDetailSheet, and drawer search/filtering.
