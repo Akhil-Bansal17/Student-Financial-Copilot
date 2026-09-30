@@ -6,6 +6,7 @@ from app.models.budget import Budget
 from app.models.goal import Goal, GoalContribution
 from app.models.account import ConnectedAccount, AccountConsent, SyncRun
 from app.models.reconciliation import TransactionReconciliation
+from app.models.merchant_preference import MerchantCategoryPreference
 
 __all__ = [
     "Base",
@@ -19,5 +20,6 @@ __all__ = [
     "AccountConsent",
     "SyncRun",
     "TransactionReconciliation",
+    "MerchantCategoryPreference",
 ]
 

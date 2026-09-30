@@ -33,3 +33,24 @@ PAYMENT_METHODS = {
     "Bank Transfer",
     "Other",
 }
+
+CATEGORY_CONFIDENCES = {
+    "HIGH",
+    "MEDIUM",
+    "LOW",
+}
+
+CATEGORIZATION_SOURCES = {
+    "USER_MANUAL",
+    "USER_PREFERENCE",
+    "RULE_HIGH",
+    "RULE_SUGGESTION",
+    "PROVIDER",
+    "DEFAULT",
+}
+
+TRANSACTION_STATUSES = {
+    "POSTED",
+    "PENDING",
+    "REVERSED",
+}

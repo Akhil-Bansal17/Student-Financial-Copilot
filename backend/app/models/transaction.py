@@ -17,6 +17,7 @@ class Transaction(Base):
         CheckConstraint("transaction_type IN ('income', 'expense')", name="check_transaction_type_valid"),
         Index("ix_transactions_user_id_date", "user_id", "transaction_date"),
         Index("ix_transactions_user_id_type_date", "user_id", "transaction_type", "transaction_date"),
+        Index("ix_transactions_user_id_merchant", "user_id", "normalized_merchant"),
         Index(
             "uq_transactions_provider_account_external_id",
             "provider",
@@ -39,6 +40,11 @@ class Transaction(Base):
         nullable=False,
     )
     category: Mapped[str] = mapped_column(String(50), nullable=False)
+    merchant: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    normalized_merchant: Mapped[Optional[str]] = mapped_column(String(100), index=True, nullable=True)
+    category_confidence: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # HIGH, MEDIUM, LOW
+    categorization_source: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)  # USER_MANUAL, USER_PREFERENCE, RULE_HIGH, RULE_SUGGESTION, PROVIDER, DEFAULT
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="POSTED", server_default="POSTED")  # POSTED, PENDING, REVERSED
     description: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     payment_method: Mapped[str] = mapped_column(String(50), nullable=False)
     transaction_date: Mapped[datetime.datetime] = mapped_column(

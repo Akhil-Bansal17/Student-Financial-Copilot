@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from app.models.budget import Budget
     from app.models.goal import Goal
     from app.models.account import ConnectedAccount, AccountConsent, SyncRun
+    from app.models.merchant_preference import MerchantCategoryPreference
 
 
 class User(Base):
@@ -79,6 +80,13 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
         order_by="SyncRun.started_at.desc()",
+    )
+
+    merchant_preferences: Mapped[list["MerchantCategoryPreference"]] = relationship(
+        "MerchantCategoryPreference",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="MerchantCategoryPreference.normalized_merchant.asc()",
     )
 
     @property
