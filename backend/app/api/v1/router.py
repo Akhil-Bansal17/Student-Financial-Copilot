@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (
     copilot,
     accounts,
     reconciliation,
+    merchant_preferences,
 )
 
 api_router = APIRouter()
@@ -47,4 +48,7 @@ api_router.include_router(accounts.router, prefix="/accounts", tags=["Accounts"]
 
 # Register transaction reconciliation & bank sync router (Phase 10)
 api_router.include_router(reconciliation.router, prefix="/reconciliation", tags=["Reconciliation"])
+
+# Register merchant category preferences router (Phase 11)
+api_router.include_router(merchant_preferences.router, prefix="/merchant-preferences", tags=["Merchant Preferences"])
 

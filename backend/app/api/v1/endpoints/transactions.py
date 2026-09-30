@@ -17,7 +17,10 @@ from app.schemas.transaction import (
     TransactionResponse,
     TransactionListResponse,
     FinancialSummaryResponse,
+    BulkCategoryUpdatePayload,
+    BulkCategoryUpdateResponse,
 )
+from app.services.transaction_service import TransactionService
 
 router = APIRouter()
 
@@ -30,26 +33,9 @@ def create_transaction(
 ):
     """
     Create an income or expense transaction for the authenticated student.
+    Extracts and normalizes merchant if present.
     """
-    tx_date = payload.transaction_date or datetime.datetime.now(datetime.timezone.utc)
-    # Ensure timezone awareness if naive
-    if tx_date.tzinfo is None:
-        tx_date = tx_date.replace(tzinfo=datetime.timezone.utc)
-
-    transaction = Transaction(
-        user_id=current_user.id,
-        transaction_type=payload.transaction_type,
-        amount=payload.amount,
-        category=payload.category,
-        description=payload.description.strip() if payload.description else None,
-        payment_method=payload.payment_method,
-        transaction_date=tx_date,
-        source="MANUAL",
-    )
-    db.add(transaction)
-    db.commit()
-    db.refresh(transaction)
-    return transaction
+    return TransactionService.create_transaction(db, current_user, payload)
 
 
 @router.get("/summary", response_model=FinancialSummaryResponse)
@@ -111,34 +97,38 @@ def list_transactions(
     db: Annotated[Session, Depends(get_db)],
     transaction_type: Optional[Literal["income", "expense"]] = None,
     category: Optional[str] = None,
+    search: Optional[str] = None,
+    merchant: Optional[str] = None,
+    source: Optional[str] = None,
+    account_id: Optional[int] = None,
     start_date: Optional[datetime.date] = None,
     end_date: Optional[datetime.date] = None,
+    min_amount: Optional[Decimal] = None,
+    max_amount: Optional[Decimal] = None,
+    reconciliation_status: Optional[str] = None,
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ):
     """
     List transactions belonging exclusively to the authenticated student,
-    with support for pagination and filtering by type, category, or date range.
+    with server-side filtering, merchant search, date/amount range, and pagination.
     """
-    query = db.query(Transaction).filter(Transaction.user_id == current_user.id)
-
-    if transaction_type:
-        query = query.filter(Transaction.transaction_type == transaction_type)
-    if category:
-        query = query.filter(Transaction.category == category)
-    if start_date:
-        start_dt = datetime.datetime.combine(start_date, datetime.time.min, tzinfo=datetime.timezone.utc)
-        query = query.filter(Transaction.transaction_date >= start_dt)
-    if end_date:
-        end_dt = datetime.datetime.combine(end_date, datetime.time.max, tzinfo=datetime.timezone.utc)
-        query = query.filter(Transaction.transaction_date <= end_dt)
-
-    total = query.count()
-    items = (
-        query.order_by(Transaction.transaction_date.desc(), Transaction.id.desc())
-        .offset(offset)
-        .limit(limit)
-        .all()
+    items, total = TransactionService.list_transactions(
+        db=db,
+        user=current_user,
+        transaction_type=transaction_type,
+        category=category,
+        search=search,
+        merchant=merchant,
+        source=source,
+        account_id=account_id,
+        start_date=start_date,
+        end_date=end_date,
+        min_amount=min_amount,
+        max_amount=max_amount,
+        reconciliation_status=reconciliation_status,
+        limit=limit,
+        offset=offset,
     )
 
     return TransactionListResponse(
@@ -147,6 +137,19 @@ def list_transactions(
         limit=limit,
         offset=offset,
     )
+
+
+@router.post("/bulk-category", response_model=BulkCategoryUpdateResponse)
+def bulk_update_category(
+    payload: BulkCategoryUpdatePayload,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Safely bulk update categories across multiple transactions owned by the user.
+    Optionally persists merchant preference for all updated merchants.
+    """
+    return TransactionService.bulk_update_category(db, current_user, payload)
 
 
 @router.get("/{transaction_id}", response_model=TransactionResponse)
@@ -159,17 +162,7 @@ def get_transaction_detail(
     Get a single transaction. Strictly returns 404 if the record does not exist
     or belongs to another user.
     """
-    tx = (
-        db.query(Transaction)
-        .filter(Transaction.id == transaction_id, Transaction.user_id == current_user.id)
-        .first()
-    )
-    if not tx:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Transaction not found",
-        )
-    return tx
+    return TransactionService.get_transaction_detail(db, current_user, transaction_id)
 
 
 @router.patch("/{transaction_id}", response_model=TransactionResponse)
@@ -181,52 +174,9 @@ def update_transaction(
 ):
     """
     Edit a transaction belonging to the authenticated student.
+    Enforces bank provenance safeguards and optionally saves merchant preference.
     """
-    tx = (
-        db.query(Transaction)
-        .filter(Transaction.id == transaction_id, Transaction.user_id == current_user.id)
-        .first()
-    )
-    if not tx:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Transaction not found",
-        )
-
-    effective_type = payload.transaction_type or tx.transaction_type
-    effective_category = payload.category or tx.category
-
-    # Verify type / category consistency
-    if effective_type == "income" and effective_category not in INCOME_CATEGORIES:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Category '{effective_category}' is not valid for income transactions",
-        )
-    if effective_type == "expense" and effective_category not in EXPENSE_CATEGORIES:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Category '{effective_category}' is not valid for expense transactions",
-        )
-
-    if payload.transaction_type is not None:
-        tx.transaction_type = payload.transaction_type
-    if payload.amount is not None:
-        tx.amount = payload.amount
-    if payload.category is not None:
-        tx.category = payload.category
-    if payload.description is not None:
-        tx.description = payload.description.strip() if payload.description else None
-    if payload.payment_method is not None:
-        tx.payment_method = payload.payment_method
-    if payload.transaction_date is not None:
-        dt = payload.transaction_date
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=datetime.timezone.utc)
-        tx.transaction_date = dt
-
-    db.commit()
-    db.refresh(tx)
-    return tx
+    return TransactionService.update_transaction(db, current_user, transaction_id, payload)
 
 
 @router.delete("/{transaction_id}")
@@ -239,17 +189,5 @@ def delete_transaction(
     Delete a transaction belonging to the authenticated student.
     Strictly returns 404 if the record does not exist or belongs to another user.
     """
-    tx = (
-        db.query(Transaction)
-        .filter(Transaction.id == transaction_id, Transaction.user_id == current_user.id)
-        .first()
-    )
-    if not tx:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Transaction not found",
-        )
-
-    db.delete(tx)
-    db.commit()
+    TransactionService.delete_transaction(db, current_user, transaction_id)
     return {"success": True, "message": "Transaction deleted successfully"}
