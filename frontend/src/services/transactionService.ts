@@ -6,6 +6,9 @@ import type {
   TransactionListResponse,
   FinancialSummaryResponse,
   TransactionFilters,
+  BulkCategoryPayload,
+  BulkCategoryResponse,
+  MerchantPreference,
 } from '@/types/transaction'
 
 export const transactionService = {
@@ -17,11 +20,32 @@ export const transactionService = {
     if (filters?.category) {
       params.append('category', filters.category)
     }
+    if (filters?.search) {
+      params.append('search', filters.search)
+    }
+    if (filters?.merchant) {
+      params.append('merchant', filters.merchant)
+    }
+    if (filters?.source) {
+      params.append('source', filters.source)
+    }
+    if (filters?.account_id !== undefined) {
+      params.append('account_id', filters.account_id.toString())
+    }
     if (filters?.start_date) {
       params.append('start_date', filters.start_date)
     }
     if (filters?.end_date) {
       params.append('end_date', filters.end_date)
+    }
+    if (filters?.min_amount !== undefined) {
+      params.append('min_amount', filters.min_amount.toString())
+    }
+    if (filters?.max_amount !== undefined) {
+      params.append('max_amount', filters.max_amount.toString())
+    }
+    if (filters?.reconciliation_status) {
+      params.append('reconciliation_status', filters.reconciliation_status)
     }
     if (filters?.limit !== undefined) {
       params.append('limit', filters.limit.toString())
@@ -56,6 +80,13 @@ export const transactionService = {
     })
   },
 
+  async bulkUpdateCategory(payload: BulkCategoryPayload): Promise<BulkCategoryResponse> {
+    return apiClient<BulkCategoryResponse>('/api/v1/transactions/bulk-category', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
   async deleteTransaction(id: number): Promise<{ success: boolean; message: string }> {
     return apiClient<{ success: boolean; message: string }>(
       `/api/v1/transactions/${id}`,
@@ -67,5 +98,39 @@ export const transactionService = {
 
   async getSummary(): Promise<FinancialSummaryResponse> {
     return apiClient<FinancialSummaryResponse>('/api/v1/analytics/summary')
+  },
+
+  // Merchant Preferences (Phase 11)
+  async getMerchantPreferences(): Promise<MerchantPreference[]> {
+    return apiClient<MerchantPreference[]>('/api/v1/merchant-preferences')
+  },
+
+  async createMerchantPreference(payload: {
+    normalized_merchant: string
+    category: string
+  }): Promise<MerchantPreference> {
+    return apiClient<MerchantPreference>('/api/v1/merchant-preferences', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  async updateMerchantPreference(
+    id: number,
+    category: string
+  ): Promise<MerchantPreference> {
+    return apiClient<MerchantPreference>(`/api/v1/merchant-preferences/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ category }),
+    })
+  },
+
+  async deleteMerchantPreference(id: number): Promise<{ success: boolean; message: string }> {
+    return apiClient<{ success: boolean; message: string }>(
+      `/api/v1/merchant-preferences/${id}`,
+      {
+        method: 'DELETE',
+      }
+    )
   },
 }

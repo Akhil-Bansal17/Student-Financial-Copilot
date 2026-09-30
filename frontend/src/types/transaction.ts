@@ -65,6 +65,11 @@ export interface Transaction {
   transaction_type: TransactionType
   amount: number | string
   category: string
+  merchant?: string | null
+  normalized_merchant?: string | null
+  category_confidence?: 'HIGH' | 'MEDIUM' | 'LOW' | string | null
+  categorization_source?: string | null
+  status?: 'POSTED' | 'PENDING' | 'REVERSED' | string
   description: string | null
   payment_method: string
   transaction_date: string
@@ -84,6 +89,7 @@ export interface CreateTransactionPayload {
   transaction_type: TransactionType
   amount: number | string
   category: string
+  merchant?: string
   description?: string
   payment_method: string
   transaction_date?: string
@@ -93,9 +99,32 @@ export interface UpdateTransactionPayload {
   transaction_type?: TransactionType
   amount?: number | string
   category?: string
+  merchant?: string
   description?: string
   payment_method?: string
   transaction_date?: string
+  remember_merchant_preference?: boolean
+}
+
+export interface BulkCategoryPayload {
+  transaction_ids: number[]
+  category: string
+  update_merchant_preference?: boolean
+}
+
+export interface BulkCategoryResponse {
+  updated_count: number
+  category: string
+  preference_saved: boolean
+}
+
+export interface MerchantPreference {
+  id: number
+  user_id: number
+  normalized_merchant: string
+  category: string
+  created_at: string
+  updated_at: string
 }
 
 export interface TransactionListResponse {
@@ -119,8 +148,15 @@ export interface FinancialSummaryResponse {
 export interface TransactionFilters {
   transaction_type?: TransactionType
   category?: string
+  search?: string
+  merchant?: string
+  source?: string
+  account_id?: number
   start_date?: string
   end_date?: string
+  min_amount?: number
+  max_amount?: number
+  reconciliation_status?: string
   limit?: number
   offset?: number
 }
