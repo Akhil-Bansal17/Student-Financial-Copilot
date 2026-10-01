@@ -73,6 +73,14 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
       throw new ApiError(errorData.code || response.status, errorData.message, errorData.details)
     }
 
+    const contentType = response.headers.get('content-type') || ''
+    if (contentType.includes('text/html')) {
+      throw new ApiError(
+        503,
+        'Backend API endpoint not found or service unavailable. Verify that VITE_API_URL is configured to a running backend.'
+      )
+    }
+
     return (await response.json()) as T
   } catch (err: unknown) {
     if (err instanceof ApiError) {
