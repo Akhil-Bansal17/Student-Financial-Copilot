@@ -37,9 +37,11 @@ Student life moves quickly. Between hostel rent, campus canteen meals, metro far
 - **Testing**: Pytest + HTTPX
 
 ### Infrastructure & Tooling
+- **Frontend Hosting**: Vercel (Production URL: [student-financial-copilot-wheat.vercel.app](https://student-financial-copilot-wheat.vercel.app))
 - **Containerization**: Docker & Docker Compose
 - **Environment**: Strict `.env` configuration with `.env.example`
 - **Architecture**: Modular monorepo with clean service boundaries
+- **Deployment Guide**: [docs/deployment.md](docs/deployment.md)
 
 ---
 
