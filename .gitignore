@@ -49,6 +49,8 @@ coverage/
 .env.test.local
 .env.production.local
 *.local
+.env*
+!.env.example
 
 # IDE & OS
 .vscode/
@@ -58,11 +60,12 @@ coverage/
 .DS_Store
 Thumbs.db
 
-# Frontend Build
+# Frontend Build & Deploy
 frontend/dist
 frontend/dist-ssr
 *.tsbuildinfo
 .vite
+.vercel
 
 # Database & Local Storage
 *.sqlite
