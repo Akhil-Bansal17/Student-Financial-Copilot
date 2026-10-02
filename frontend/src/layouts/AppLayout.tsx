@@ -7,6 +7,7 @@ const routeTitles: Record<string, string> = {
   '/': 'Financial Overview',
   '/activity': 'Activity & Transactions',
   '/copilot': 'AI Financial Copilot',
+  '/forecast': 'Cash Flow Forecast',
   '/recurring': 'Subscriptions & Recurring',
   '/insights': 'Spending Insights',
   '/budgets': 'Budget Planning',
