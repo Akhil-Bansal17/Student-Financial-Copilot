@@ -281,6 +281,47 @@ class FinancialContextBuilder:
             or recurring_summary["total_detected_count"] > 0
         )
 
+        # 11. Authoritative Cash Flow Forecast (Phase 13)
+        from app.services.cash_flow_forecast_service import CashFlowForecastService
+        forecast_res = CashFlowForecastService.compute_cash_flow_forecast(db, user_id, days=30)
+        forecast_serialized = {
+            "forecast_horizon_days": forecast_res.forecast_days,
+            "starting_balance": str(forecast_res.starting_balance),
+            "projected_balance": str(forecast_res.projected_balance),
+            "expected_income": str(forecast_res.expected_income),
+            "expected_recurring_commitments": str(forecast_res.expected_recurring_expenses),
+            "estimated_discretionary_spending": str(forecast_res.estimated_discretionary_spending),
+            "projected_total_outflow": str(forecast_res.projected_total_outflow),
+            "net_projected_cash_flow": str(forecast_res.net_cash_flow),
+            "minimum_projected_balance": str(forecast_res.minimum_projected_balance),
+            "minimum_balance_date": (
+                forecast_res.minimum_balance_date.isoformat() if forecast_res.minimum_balance_date else None
+            ),
+            "minimum_balance_threshold": str(forecast_res.minimum_balance_threshold),
+            "is_negative_projected": forecast_res.is_negative_projected,
+            "negative_balance_date": (
+                forecast_res.negative_balance_date.isoformat() if forecast_res.negative_balance_date else None
+            ),
+            "is_low_balance_projected": forecast_res.is_low_balance_projected,
+            "low_balance_date": (
+                forecast_res.low_balance_date.isoformat() if forecast_res.low_balance_date else None
+            ),
+            "data_sufficiency": forecast_res.data_sufficiency,
+            "confidence": forecast_res.confidence,
+            "bank_data_freshness": forecast_res.bank_data_freshness,
+            "upcoming_events": [
+                {
+                    "date": ev.date.isoformat(),
+                    "name": ev.name,
+                    "amount": str(ev.amount),
+                    "is_inflow": ev.is_inflow,
+                    "type": ev.type,
+                }
+                for ev in forecast_res.timeline[:10]
+            ],
+            "warnings": forecast_res.warnings,
+        }
+
         return {
             "period": period_str,
             "has_sufficient_data": has_sufficient_data,
@@ -340,5 +381,6 @@ class FinancialContextBuilder:
                 "recent_price_changes": price_changes_serialized,
                 "overdue_payments": overdue_serialized,
             },
+            "cash_flow_forecast": forecast_serialized,
             "deterministic_observations": deterministic_insights_serialized,
         }
