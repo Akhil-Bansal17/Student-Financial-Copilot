@@ -67,6 +67,7 @@ export function RecurringDetailDrawer({
       queryClient.invalidateQueries({ queryKey: recurringKeys.all }),
       queryClient.invalidateQueries({ queryKey: ['financial-summary'] }),
       queryClient.invalidateQueries({ queryKey: ['budgets'] }),
+      queryClient.invalidateQueries({ queryKey: ['forecast'] }),
     ])
   }
 
