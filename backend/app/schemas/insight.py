@@ -13,6 +13,7 @@ class InsightType(str, Enum):
     BUDGET = "budget"
     GOAL = "goal"
     RECURRING_PATTERN = "recurring_pattern"
+    FORECAST = "forecast"
 
 
 class InsightPriority(str, Enum):
