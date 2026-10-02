@@ -138,6 +138,8 @@ function TransactionFormContent({
       await queryClient.invalidateQueries({ queryKey: ['analytics'] })
       await queryClient.invalidateQueries({ queryKey: ['budgets'] })
       await queryClient.invalidateQueries({ queryKey: ['insights'] })
+      await queryClient.invalidateQueries({ queryKey: ['recurring'] })
+      await queryClient.invalidateQueries({ queryKey: ['forecast'] })
 
       onSuccess?.()
       onClose()
