@@ -91,6 +91,10 @@ class AdvancedInsightsService:
         recurring_insights = cls._generate_recurring_patterns(db, user_id, period)
         insights.extend(recurring_insights)
 
+        # 7. CASH FLOW FORECAST INSIGHTS
+        forecast_insights = cls._generate_forecast_insights(db, user_id, period)
+        insights.extend(forecast_insights)
+
         # Summary Counts
         positive_count = sum(1 for i in insights if i.priority == InsightPriority.POSITIVE)
         warning_count = sum(1 for i in insights if i.priority == InsightPriority.WARNING)
@@ -666,6 +670,118 @@ class AdvancedInsightsService:
                             },
                         )
                     )
+        except Exception:
+            pass
+
+        return results
+
+    # --------------------------------------------------------------------------
+    # 7. CASH FLOW FORECAST INSIGHTS
+    # --------------------------------------------------------------------------
+    @classmethod
+    def _generate_forecast_insights(
+        cls, db: Session, user_id: int, period: str
+    ) -> List[FinancialInsight]:
+        results: List[FinancialInsight] = []
+        try:
+            from app.services.cash_flow_forecast_service import CashFlowForecastService
+
+            forecast = CashFlowForecastService.compute_cash_flow_forecast(db, user_id, days=30)
+            if forecast.data_sufficiency == "INSUFFICIENT":
+                return results
+
+            # Negative projected balance warning
+            if forecast.is_negative_projected and forecast.negative_balance_date:
+                results.append(
+                    FinancialInsight(
+                        id=f"forecast_negative_{period}",
+                        type=InsightType.FORECAST,
+                        priority=InsightPriority.WARNING,
+                        category=None,
+                        title="Projected Negative Cash Flow",
+                        description=(
+                            f"Your projected balance becomes negative around "
+                            f"{forecast.negative_balance_date.strftime('%b %d')} based on recurring commitments "
+                            f"and spending patterns."
+                        ),
+                        amount=abs(forecast.minimum_projected_balance),
+                        percentage=None,
+                        period=period,
+                        metadata={
+                            "forecast_days": 30,
+                            "negative_balance_date": str(forecast.negative_balance_date),
+                            "minimum_projected_balance": str(forecast.minimum_projected_balance),
+                        },
+                    )
+                )
+            # Low balance warning
+            elif forecast.is_low_balance_projected and forecast.low_balance_date:
+                results.append(
+                    FinancialInsight(
+                        id=f"forecast_low_balance_{period}",
+                        type=InsightType.FORECAST,
+                        priority=InsightPriority.WARNING,
+                        category=None,
+                        title="Projected Low Balance Alert",
+                        description=(
+                            f"Your projected balance may fall below your minimum threshold "
+                            f"(₹{forecast.minimum_balance_threshold:,.2f}) around {forecast.low_balance_date.strftime('%b %d')}."
+                        ),
+                        amount=forecast.minimum_projected_balance,
+                        percentage=None,
+                        period=period,
+                        metadata={
+                            "forecast_days": 30,
+                            "low_balance_date": str(forecast.low_balance_date),
+                            "minimum_projected_balance": str(forecast.minimum_projected_balance),
+                        },
+                    )
+                )
+            # Healthy positive cash buffer
+            elif forecast.projected_balance > Decimal("0.00"):
+                results.append(
+                    FinancialInsight(
+                        id=f"forecast_healthy_{period}",
+                        type=InsightType.FORECAST,
+                        priority=InsightPriority.POSITIVE,
+                        category=None,
+                        title="Positive Cash Flow Outlook",
+                        description=(
+                            f"Your projected balance is expected to remain positive at approximately "
+                            f"₹{forecast.projected_balance:,.2f} over the next 30 days."
+                        ),
+                        amount=forecast.projected_balance,
+                        percentage=None,
+                        period=period,
+                        metadata={
+                            "forecast_days": 30,
+                            "projected_balance": str(forecast.projected_balance),
+                        },
+                    )
+                )
+
+            # Recurring commitments insight
+            if forecast.expected_recurring_expenses > Decimal("0.00"):
+                results.append(
+                    FinancialInsight(
+                        id=f"forecast_recurring_commitments_{period}",
+                        type=InsightType.FORECAST,
+                        priority=InsightPriority.INFO,
+                        category=None,
+                        title="Upcoming Recurring Commitments",
+                        description=(
+                            f"Your expected recurring commitments account for approximately "
+                            f"₹{forecast.expected_recurring_expenses:,.2f} over the next 30 days."
+                        ),
+                        amount=forecast.expected_recurring_expenses,
+                        percentage=None,
+                        period=period,
+                        metadata={
+                            "forecast_days": 30,
+                            "expected_recurring_expenses": str(forecast.expected_recurring_expenses),
+                        },
+                    )
+                )
         except Exception:
             pass
 
