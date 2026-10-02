@@ -181,3 +181,42 @@ KNOWN_RECURRING_EXPENSE_MERCHANTS = {
     "TUITION",
 }
 
+# ==============================================================================
+# Phase 13: Cash Flow Forecasting & Financial Planning Constants
+# ==============================================================================
+
+FORECAST_HORIZONS = [7, 30, 90]
+DEFAULT_FORECAST_HORIZON_DAYS = 30
+DEFAULT_MINIMUM_BALANCE_THRESHOLD = Decimal("2000.00")
+
+DATA_SUFFICIENCY_LEVELS = {
+    "INSUFFICIENT",
+    "LIMITED",
+    "MODERATE",
+    "STRONG",
+}
+
+FORECAST_CONFIDENCE_LEVELS = {
+    "LOW",
+    "MEDIUM",
+    "HIGH",
+}
+
+FORECAST_EVENT_TYPES = {
+    "EXPECTED_INCOME",
+    "RECURRING_EXPENSE",
+    "RECURRING_SUBSCRIPTION",
+    "RECURRING_BILL",
+    "ESTIMATED_SPENDING",
+    "GOAL_ALLOCATION",
+    "OTHER",
+}
+
+RECURRING_INCOME_CATEGORIES = {
+    "Salary",
+    "Stipend",
+    "Scholarship",
+    "Family Support",
+    "Pocket Money",
+}
+
