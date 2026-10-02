@@ -10,6 +10,7 @@ import {
   GraduationCap,
   ChevronRight,
   ShieldCheck,
+  CalendarClock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BackendStatusBadge } from '@/components/common/BackendStatusBadge'
@@ -19,6 +20,7 @@ const navItems = [
   { label: 'Home', path: '/', icon: Home, description: 'Daily Safe-to-Spend & overview' },
   { label: 'Activity', path: '/activity', icon: ListOrdered, description: 'Transactions & allowances' },
   { label: 'Copilot', path: '/copilot', icon: Bot, description: 'AI financial explanations' },
+  { label: 'Recurring', path: '/recurring', icon: CalendarClock, description: 'Subscriptions & recurring bills' },
   { label: 'Insights', path: '/insights', icon: Sparkles, description: 'Spending intelligence' },
   { label: 'Budgets', path: '/budgets', icon: SlidersHorizontal, description: 'Spending limits & tracking' },
   { label: 'Goals', path: '/goals', icon: Target, description: 'Student savings targets' },

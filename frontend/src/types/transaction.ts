@@ -81,6 +81,8 @@ export interface Transaction {
   external_transaction_id?: string | null
   raw_bank_description?: string | null
   imported_at?: string | null
+  is_recurring?: boolean | null
+  recurring_type?: string | null
   created_at: string
   updated_at: string
 }

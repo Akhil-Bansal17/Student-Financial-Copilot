@@ -13,6 +13,7 @@ import {
   SlidersHorizontal,
   Bot,
   Building2,
+  CalendarClock,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -117,6 +118,20 @@ export function MorePage() {
               <div>
                 <p className="text-sm font-medium text-foreground">AI Financial Copilot</p>
                 <p className="text-xs text-muted-foreground">Ask natural-language questions about your finances</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+
+          <Link
+            to="/recurring"
+            className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              <CalendarClock className="h-5 w-5 text-indigo-500" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Subscriptions & Recurring</p>
+                <p className="text-xs text-muted-foreground">Manage subscriptions, recurring bills & renewal schedules</p>
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />

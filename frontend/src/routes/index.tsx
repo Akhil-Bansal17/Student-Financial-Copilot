@@ -13,6 +13,7 @@ import { BudgetsPage } from '@/pages/BudgetsPage'
 import { GoalsPage } from '@/pages/GoalsPage'
 import { MorePage } from '@/pages/MorePage'
 import { ConnectedAccountsPage } from '@/pages/ConnectedAccountsPage'
+import { RecurringPage } from '@/pages/RecurringPage'
 import { OnboardingPage } from '@/pages/OnboardingPage'
 
 export function AppRoutes() {
@@ -24,6 +25,7 @@ export function AppRoutes() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/copilot" element={<CopilotPage />} />
+          <Route path="/recurring" element={<RecurringPage />} />
           <Route path="/insights" element={<InsightsPage />} />
           <Route path="/budgets" element={<BudgetsPage />} />
           <Route path="/goals" element={<GoalsPage />} />

@@ -11,6 +11,7 @@ export interface Budget {
   remaining: string
   utilization_percentage: string
   over_budget: boolean
+  recurring_amount?: string | null
 }
 
 export interface OverallBudgetSummary {
@@ -30,6 +31,7 @@ export interface BudgetCategorySummary {
   remaining: string
   utilization: string
   over_budget: boolean
+  recurring_amount?: string | null
 }
 
 export interface BudgetSummary {

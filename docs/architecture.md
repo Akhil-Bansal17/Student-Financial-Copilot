@@ -124,3 +124,35 @@ The system is architected to scale along a strict unidirectional data flow:
 - **Secret Isolation**: Configuration loaded via `pydantic-settings` from environment variables, strictly excluded from version control.
 - **Cross-Origin Resource Sharing**: Strict CORS origin whitelisting configured in `core/config.py`.
 - **Database Connection Pooling**: SQLAlchemy connection pool with ping validation (`pool_pre_ping=True`) to gracefully recover from dropped connections.
+
+---
+
+## 6. Recurring Expense & Subscription Intelligence Architecture
+
+The recurring engine deterministically clusters historical transactions by normalized merchant counterparties without LLM hallucination:
+
+1. **Clustering & Interval Analysis**:
+   - Groups non-reversed, non-ignored, non-reconciled duplicate transactions per user and merchant.
+   - Calculates median interval (in days) and standard deviation:
+     - Weekly (5-9 days)
+     - Biweekly (12-16 days)
+     - Monthly (25-35 days)
+     - Quarterly (80-100 days)
+     - Yearly (350-380 days)
+2. **Classification (Deterministic)**:
+   - Evaluates coefficient of variance ($CV = \frac{\sigma}{\mu}$):
+     - Low variance ($CV \le 0.15$): Fixed recurring charge.
+     - Higher variance ($CV > 0.15$): Variable recurring charge.
+   - Known streaming/software services classified as `SUBSCRIPTION`.
+   - Utilities, broadband, and recharges classified as `RECURRING_BILL`.
+   - User overrides via `RecurringPreference` take precedence over automatic heuristics.
+3. **Price-Change Tracking & Forecasting**:
+   - Tracks latest vs previous charge amount and percentage delta.
+   - Projections calculate `next_expected_date` from `last_occurrence_date + interval`.
+   - Status transitions manage `ACTIVE`, `OVERDUE_EXPECTED`, `POSSIBLY_ENDED`, `PAUSED`, and `USER_IGNORED`.
+4. **Cross-System Integrations**:
+   - Automatic sync hook on bank imports and transaction mutations.
+   - Budget commitment calculations reflect recurring monthly minimums per category.
+   - Emits structured high-priority financial insights for price increases and overdue renewals.
+   - Feeds ground-truth recurring context to AI Financial Copilot.
+

@@ -846,6 +846,14 @@ export function ActivityPage() {
                             Manual
                           </Badge>
                         )}
+                        {tx.is_recurring && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] py-0 px-1.5 text-indigo-600 dark:text-indigo-400 border-indigo-500/30 bg-indigo-500/10 font-medium"
+                          >
+                            {tx.recurring_type === 'SUBSCRIPTION' ? 'Subscription' : 'Recurring'}
+                          </Badge>
+                        )}
                       </div>
 
                       {/* Secondary description / narration */}

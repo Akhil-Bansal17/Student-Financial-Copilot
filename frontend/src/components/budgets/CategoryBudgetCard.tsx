@@ -13,6 +13,7 @@ import {
   Loader2,
   Shield,
   ShoppingBag,
+  CalendarClock,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -173,6 +174,19 @@ export function CategoryBudgetCard({
             />
           </div>
         </div>
+
+        {/* Recurring Commitment indicator if any */}
+        {summary.recurring_amount && Number(summary.recurring_amount) > 0 && (
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40">
+            <span className="flex items-center gap-1">
+              <CalendarClock className="h-3 w-3 text-indigo-500" />
+              <span>Committed recurring</span>
+            </span>
+            <span className="font-semibold text-foreground font-mono">
+              {formatINR(summary.recurring_amount)}
+            </span>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

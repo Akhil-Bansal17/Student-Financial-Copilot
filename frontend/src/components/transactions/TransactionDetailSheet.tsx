@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Loader2,
   Tag,
+  CalendarClock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -219,6 +220,17 @@ export function TransactionDetailSheet({
               <p className="text-xs font-mono text-muted-foreground/90 break-all bg-background/60 p-2 rounded-lg mt-0.5 border border-border/40">
                 {transaction.raw_bank_description}
               </p>
+            </div>
+          )}
+          {transaction.is_recurring && (
+            <div className="mt-1 pt-1.5 border-t border-border/40 flex items-center justify-between">
+              <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium flex items-center gap-1.5">
+                <CalendarClock className="h-3.5 w-3.5" />
+                <span>Deterministic Recurring</span>
+              </span>
+              <Badge variant="outline" className="text-[10px] text-indigo-600 dark:text-indigo-400 border-indigo-500/30 bg-indigo-500/10">
+                {transaction.recurring_type === 'SUBSCRIPTION' ? 'Subscription' : 'Recurring Bill'}
+              </Badge>
             </div>
           )}
         </div>
