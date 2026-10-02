@@ -12,6 +12,7 @@ from app.api.v1.endpoints import (
     accounts,
     reconciliation,
     merchant_preferences,
+    recurring,
 )
 
 api_router = APIRouter()
@@ -51,4 +52,7 @@ api_router.include_router(reconciliation.router, prefix="/reconciliation", tags=
 
 # Register merchant category preferences router (Phase 11)
 api_router.include_router(merchant_preferences.router, prefix="/merchant-preferences", tags=["Merchant Preferences"])
+
+# Register recurring expenses & subscription intelligence router (Phase 12)
+api_router.include_router(recurring.router, tags=["Recurring Expenses & Subscriptions"])
 

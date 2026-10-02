@@ -342,6 +342,14 @@ class BankSyncService:
 
             db.commit()
             db.refresh(sync_run)
+
+            # Trigger deterministic recurring expense detection (Phase 12)
+            try:
+                from app.services.recurring_expense_service import RecurringExpenseService
+                RecurringExpenseService.detect_and_sync_recurring(db, user.id)
+            except Exception:
+                pass
+
             return sync_run
 
         except BankProviderError as exc:

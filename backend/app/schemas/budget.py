@@ -109,6 +109,7 @@ class CategoryBudgetSummary(BaseModel):
     remaining: Decimal
     utilization: Decimal
     over_budget: bool
+    recurring_amount: Decimal = Decimal("0.00")
 
     model_config = ConfigDict(from_attributes=True)
 

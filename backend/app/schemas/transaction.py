@@ -132,6 +132,8 @@ class TransactionResponse(BaseModel):
     imported_at: Optional[datetime.datetime] = None
     created_at: datetime.datetime
     updated_at: datetime.datetime
+    is_recurring: Optional[bool] = False
+    recurring_type: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

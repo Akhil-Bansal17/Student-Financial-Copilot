@@ -213,6 +213,74 @@ class FinancialContextBuilder:
             for row in top_merchants_query
         ]
 
+        # 10. Authoritative Recurring Expenses & Subscription Intelligence (Phase 12)
+        from app.services.recurring_expense_service import RecurringExpenseService
+        recurring_summary = RecurringExpenseService.get_recurring_summary(db, user_id)
+        all_recurring_items = RecurringExpenseService.get_recurring_expenses(db, user_id)
+
+        subscriptions_serialized = [
+            {
+                "merchant": item.merchant,
+                "amount": str(item.latest_amount),
+                "frequency": item.frequency,
+                "category": item.category,
+                "next_expected_date": item.next_expected_date.strftime("%Y-%m-%d"),
+                "status": item.status,
+            }
+            for item in all_recurring_items
+            if item.recurring_type == "SUBSCRIPTION" and item.status in {"ACTIVE", "OVERDUE_EXPECTED"}
+        ]
+
+        recurring_expenses_serialized = [
+            {
+                "merchant": item.merchant,
+                "type": item.recurring_type,
+                "amount": str(item.latest_amount),
+                "frequency": item.frequency,
+                "category": item.category,
+                "next_expected_date": item.next_expected_date.strftime("%Y-%m-%d"),
+                "status": item.status,
+            }
+            for item in all_recurring_items
+            if item.recurring_type != "SUBSCRIPTION" and item.status in {"ACTIVE", "OVERDUE_EXPECTED"}
+        ]
+
+        upcoming_payments_serialized = [
+            {
+                "merchant": item.merchant,
+                "amount": str(item.latest_amount),
+                "date": item.next_expected_date.strftime("%Y-%m-%d"),
+                "type": item.recurring_type,
+            }
+            for item in recurring_summary.get("upcoming_payments", [])
+        ]
+
+        price_changes_serialized = [
+            {
+                "merchant": item.merchant,
+                "previous_amount": str(item.previous_amount) if item.previous_amount else None,
+                "latest_amount": str(item.latest_amount),
+                "change": str(item.amount_change) if item.amount_change else None,
+                "change_percentage": str(item.amount_change_percentage) if item.amount_change_percentage else None,
+            }
+            for item in recurring_summary.get("recently_changed", [])
+        ]
+
+        overdue_serialized = [
+            {
+                "merchant": item.merchant,
+                "amount": str(item.latest_amount),
+                "expected_date": item.next_expected_date.strftime("%Y-%m-%d"),
+                "status": item.status,
+            }
+            for item in recurring_summary.get("needs_attention", [])
+        ]
+
+        has_sufficient_data = bool(
+            has_sufficient_data
+            or recurring_summary["total_detected_count"] > 0
+        )
+
         return {
             "period": period_str,
             "has_sufficient_data": has_sufficient_data,
@@ -259,6 +327,18 @@ class FinancialContextBuilder:
                 "completed_goals_count": goal_overview.completed_goals_count,
                 "overdue_goals_count": goal_overview.overdue_goals_count,
                 "overall_progress_percentage": str(goal_overview.overall_progress_percentage),
+            },
+            "recurring_intelligence": {
+                "total_monthly_recurring_spend": str(recurring_summary["total_monthly_recurring_spend"]),
+                "subscription_count": recurring_summary["subscription_count"],
+                "recurring_expense_count": recurring_summary["recurring_expense_count"],
+                "fixed_recurring_spend": str(recurring_summary["fixed_recurring_spend"]),
+                "variable_recurring_spend": str(recurring_summary["variable_recurring_spend"]),
+                "subscriptions": subscriptions_serialized,
+                "recurring_expenses": recurring_expenses_serialized,
+                "upcoming_payments": upcoming_payments_serialized,
+                "recent_price_changes": price_changes_serialized,
+                "overdue_payments": overdue_serialized,
             },
             "deterministic_observations": deterministic_insights_serialized,
         }

@@ -519,7 +519,7 @@ class AdvancedInsightsService:
         return results
 
     # --------------------------------------------------------------------------
-    # 6. RECURRING EXPENSE PATTERN DETECTION
+    # 6. RECURRING EXPENSE PATTERN DETECTION & PHASE 12 INTELLIGENCE
     # --------------------------------------------------------------------------
     @classmethod
     def _generate_recurring_patterns(
@@ -527,14 +527,12 @@ class AdvancedInsightsService:
     ) -> List[FinancialInsight]:
         """
         Conservative deterministic detector for repeated transactions:
-        - Same category
-        - Approximately similar amount (within +/- 5% tolerance)
-        - At least 3 occurrences
-        - Regular intervals (approximately weekly: 5-9 days, or monthly: 25-35 days)
+        - Same category recurring patterns (Phase 6)
+        - Authoritative Recurring Expense & Subscription Intelligence (Phase 12)
         """
         results: List[FinancialInsight] = []
 
-        # Retrieve user expense transactions ordered chronologically
+        # 1. Category-level clustering detector (Phase 6 legacy preservation)
         transactions = (
             db.query(Transaction)
             .filter(
@@ -545,83 +543,130 @@ class AdvancedInsightsService:
             .all()
         )
 
-        if len(transactions) < MIN_RECURRING_OCCURRENCES:
-            return results
+        if len(transactions) >= MIN_RECURRING_OCCURRENCES:
+            by_category: Dict[str, List[Transaction]] = {}
+            for tx in transactions:
+                by_category.setdefault(tx.category, []).append(tx)
 
-        # Group by category
-        by_category: Dict[str, List[Transaction]] = {}
-        for tx in transactions:
-            by_category.setdefault(tx.category, []).append(tx)
+            for category, tx_list in by_category.items():
+                if len(tx_list) < MIN_RECURRING_OCCURRENCES:
+                    continue
 
-        for category, tx_list in by_category.items():
-            if len(tx_list) < MIN_RECURRING_OCCURRENCES:
-                continue
+                clusters: List[List[Transaction]] = []
+                for tx in tx_list:
+                    placed = False
+                    for cluster in clusters:
+                        base_amt = cluster[0].amount
+                        lower_bound = base_amt * (Decimal("1.00") - RECURRING_AMOUNT_TOLERANCE_PCT)
+                        upper_bound = base_amt * (Decimal("1.00") + RECURRING_AMOUNT_TOLERANCE_PCT)
+                        if lower_bound <= tx.amount <= upper_bound:
+                            cluster.append(tx)
+                            placed = True
+                            break
+                    if not placed:
+                        clusters.append([tx])
 
-            # Cluster by amount tolerance
-            clusters: List[List[Transaction]] = []
-            for tx in tx_list:
-                placed = False
                 for cluster in clusters:
-                    base_amt = cluster[0].amount
-                    lower_bound = base_amt * (Decimal("1.00") - RECURRING_AMOUNT_TOLERANCE_PCT)
-                    upper_bound = base_amt * (Decimal("1.00") + RECURRING_AMOUNT_TOLERANCE_PCT)
-                    if lower_bound <= tx.amount <= upper_bound:
-                        cluster.append(tx)
-                        placed = True
-                        break
-                if not placed:
-                    clusters.append([tx])
+                    if len(cluster) < MIN_RECURRING_OCCURRENCES:
+                        continue
 
-            for cluster in clusters:
-                if len(cluster) < MIN_RECURRING_OCCURRENCES:
-                    continue
+                    cluster.sort(key=lambda t: t.transaction_date)
+                    intervals: List[int] = []
+                    for i in range(len(cluster) - 1):
+                        dt1 = cluster[i].transaction_date
+                        dt2 = cluster[i + 1].transaction_date
+                        delta_days = (dt2.date() - dt1.date()).days
+                        intervals.append(delta_days)
 
-                # Ensure sorted by date
-                cluster.sort(key=lambda t: t.transaction_date)
+                    if not intervals:
+                        continue
 
-                # Calculate intervals in days between successive occurrences
-                intervals: List[int] = []
-                for i in range(len(cluster) - 1):
-                    dt1 = cluster[i].transaction_date
-                    dt2 = cluster[i + 1].transaction_date
-                    delta_days = (dt2.date() - dt1.date()).days
-                    intervals.append(delta_days)
+                    is_weekly = all(
+                        RECURRING_WEEKLY_MIN_DAYS <= d <= RECURRING_WEEKLY_MAX_DAYS for d in intervals
+                    )
+                    is_monthly = all(
+                        RECURRING_MONTHLY_MIN_DAYS <= d <= RECURRING_MONTHLY_MAX_DAYS for d in intervals
+                    )
 
-                if not intervals:
-                    continue
+                    if is_weekly or is_monthly:
+                        frequency = "weekly" if is_weekly else "monthly"
+                        freq_label = "weekly (~7 days)" if is_weekly else "monthly (~30 days)"
+                        avg_amt = (sum((t.amount for t in cluster), Decimal("0.00")) / len(cluster)).quantize(Decimal("0.01"))
 
-                # Check if all intervals match weekly interval range
-                is_weekly = all(
-                    RECURRING_WEEKLY_MIN_DAYS <= d <= RECURRING_WEEKLY_MAX_DAYS for d in intervals
-                )
-                # Check if all intervals match monthly interval range
-                is_monthly = all(
-                    RECURRING_MONTHLY_MIN_DAYS <= d <= RECURRING_MONTHLY_MAX_DAYS for d in intervals
-                )
+                        results.append(
+                            FinancialInsight(
+                                id=f"recurring_{category}_{frequency}_{cluster[0].id}_{period}",
+                                type=InsightType.RECURRING_PATTERN,
+                                priority=InsightPriority.INFO,
+                                category=category,
+                                title=f"Recurring Expense Pattern: {category}",
+                                description=f"Detected {len(cluster)} repeated transactions of approximately ₹{avg_amt:,.2f} occurring on a {freq_label} basis in {category}.",
+                                amount=avg_amt,
+                                percentage=None,
+                                period=period,
+                                metadata={
+                                    "category": category,
+                                    "frequency": frequency,
+                                    "occurrences": len(cluster),
+                                    "average_amount": str(avg_amt),
+                                },
+                            )
+                        )
 
-                if is_weekly or is_monthly:
-                    frequency = "weekly" if is_weekly else "monthly"
-                    freq_label = "weekly (~7 days)" if is_weekly else "monthly (~30 days)"
-                    avg_amt = (sum((t.amount for t in cluster), Decimal("0.00")) / len(cluster)).quantize(Decimal("0.01"))
+        # 2. Phase 12 Verified Recurring Intelligence Insights
+        try:
+            from app.services.recurring_expense_service import RecurringExpenseService
+            summary = RecurringExpenseService.get_recurring_summary(db, user_id)
 
+            # Price Change Insights
+            for item in summary.get("recently_changed", []):
+                if item.amount_change is not None and abs(item.amount_change) >= Decimal("1.00"):
+                    is_increase = item.amount_change > Decimal("0.00")
+                    change_sign = "+" if is_increase else ""
+                    priority = InsightPriority.WARNING if is_increase else InsightPriority.POSITIVE
                     results.append(
                         FinancialInsight(
-                            id=f"recurring_{category}_{frequency}_{cluster[0].id}_{period}",
+                            id=f"recurring_price_change_{item.id}_{period}",
                             type=InsightType.RECURRING_PATTERN,
-                            priority=InsightPriority.INFO,
-                            category=category,
-                            title=f"Recurring Expense Pattern: {category}",
-                            description=f"Detected {len(cluster)} repeated transactions of approximately ₹{avg_amt:,.2f} occurring on a {freq_label} basis in {category}.",
-                            amount=avg_amt,
-                            percentage=None,
+                            priority=priority,
+                            category=item.category,
+                            title=f"Price {'Increase' if is_increase else 'Decrease'}: {item.merchant}",
+                            description=f"{item.merchant} changed from ₹{item.previous_amount:,.2f} to ₹{item.latest_amount:,.2f} ({change_sign}₹{item.amount_change:,.2f}, {change_sign}{item.amount_change_percentage}%).",
+                            amount=abs(item.amount_change),
+                            percentage=abs(item.amount_change_percentage) if item.amount_change_percentage else None,
                             period=period,
                             metadata={
-                                "category": category,
-                                "frequency": frequency,
-                                "occurrences": len(cluster),
-                                "average_amount": str(avg_amt),
+                                "merchant": item.merchant,
+                                "previous_amount": str(item.previous_amount),
+                                "latest_amount": str(item.latest_amount),
+                                "change": str(item.amount_change),
                             },
                         )
                     )
+
+            # Overdue / Expected Payment Not Detected Insights
+            for item in summary.get("needs_attention", []):
+                if item.status == "OVERDUE_EXPECTED":
+                    exp_date_str = item.next_expected_date.strftime("%d %b")
+                    results.append(
+                        FinancialInsight(
+                            id=f"recurring_overdue_{item.id}_{period}",
+                            type=InsightType.RECURRING_PATTERN,
+                            priority=InsightPriority.INFO,
+                            category=item.category,
+                            title=f"Expected Payment Not Detected: {item.merchant}",
+                            description=f"An expected {item.frequency.lower()} payment of approximately ₹{item.latest_amount:,.2f} for {item.merchant} was estimated around {exp_date_str}, but no matching transaction was detected recently.",
+                            amount=item.latest_amount,
+                            percentage=None,
+                            period=period,
+                            metadata={
+                                "merchant": item.merchant,
+                                "expected_date": item.next_expected_date.isoformat(),
+                                "frequency": item.frequency,
+                            },
+                        )
+                    )
+        except Exception:
+            pass
 
         return results

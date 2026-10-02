@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.models.transaction import Transaction
+from app.models.recurring_expense import RecurringExpense
 from app.core.constants import (
     EXPENSE_CATEGORIES,
     INCOME_CATEGORIES,
@@ -70,6 +71,13 @@ class TransactionService:
         db.add(transaction)
         db.commit()
         db.refresh(transaction)
+
+        try:
+            from app.services.recurring_expense_service import RecurringExpenseService
+            RecurringExpenseService.detect_and_sync_recurring(db, user.id)
+        except Exception:
+            pass
+
         return transaction
 
     @staticmethod
@@ -148,6 +156,25 @@ class TransactionService:
             .limit(limit)
             .all()
         )
+
+        # Annotate transactions with recurring intelligence from verified backend records
+        recurring_merchants = {
+            r.normalized_merchant: r.recurring_type
+            for r in db.query(RecurringExpense)
+            .filter(
+                RecurringExpense.user_id == user.id,
+                RecurringExpense.status.in_(["ACTIVE", "OVERDUE_EXPECTED"]),
+            )
+            .all()
+        }
+        for item in items:
+            if item.transaction_type == "expense" and item.normalized_merchant and item.normalized_merchant in recurring_merchants:
+                item.is_recurring = True
+                item.recurring_type = recurring_merchants[item.normalized_merchant]
+            else:
+                item.is_recurring = False
+                item.recurring_type = None
+
         return items, total
 
     @staticmethod
@@ -167,6 +194,27 @@ class TransactionService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Transaction not found",
             )
+
+        if tx.transaction_type == "expense" and tx.normalized_merchant:
+            recurring = (
+                db.query(RecurringExpense)
+                .filter(
+                    RecurringExpense.user_id == user.id,
+                    RecurringExpense.normalized_merchant == tx.normalized_merchant,
+                    RecurringExpense.status.in_(["ACTIVE", "OVERDUE_EXPECTED"]),
+                )
+                .first()
+            )
+            if recurring:
+                tx.is_recurring = True
+                tx.recurring_type = recurring.recurring_type
+            else:
+                tx.is_recurring = False
+                tx.recurring_type = None
+        else:
+            tx.is_recurring = False
+            tx.recurring_type = None
+
         return tx
 
     @staticmethod
@@ -262,6 +310,13 @@ class TransactionService:
 
         db.commit()
         db.refresh(tx)
+
+        try:
+            from app.services.recurring_expense_service import RecurringExpenseService
+            RecurringExpenseService.detect_and_sync_recurring(db, user.id)
+        except Exception:
+            pass
+
         return tx
 
     @staticmethod
@@ -345,4 +400,11 @@ class TransactionService:
         tx = TransactionService.get_transaction_detail(db, user, transaction_id)
         db.delete(tx)
         db.commit()
+
+        try:
+            from app.services.recurring_expense_service import RecurringExpenseService
+            RecurringExpenseService.detect_and_sync_recurring(db, user.id)
+        except Exception:
+            pass
+
         return True

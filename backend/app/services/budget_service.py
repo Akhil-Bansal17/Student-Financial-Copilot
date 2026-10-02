@@ -338,6 +338,33 @@ class BudgetService:
                 over_budget=overall_over_budget,
             )
 
+        # Map recurring commitments per category (Phase 12)
+        from app.models.recurring_expense import RecurringExpense
+        recurring_items = (
+            db.query(RecurringExpense)
+            .filter(
+                RecurringExpense.user_id == user_id,
+                RecurringExpense.status.in_(["ACTIVE", "OVERDUE_EXPECTED"]),
+            )
+            .all()
+        )
+        recurring_map: Dict[str, Decimal] = {}
+        for r in recurring_items:
+            amt = r.latest_amount
+            if r.frequency == "WEEKLY":
+                m_amt = (amt * Decimal("4.33")).quantize(Decimal("0.01"))
+            elif r.frequency == "BIWEEKLY":
+                m_amt = (amt * Decimal("2.17")).quantize(Decimal("0.01"))
+            elif r.frequency == "MONTHLY":
+                m_amt = amt
+            elif r.frequency == "QUARTERLY":
+                m_amt = (amt / Decimal("3.0")).quantize(Decimal("0.01"))
+            elif r.frequency == "YEARLY":
+                m_amt = (amt / Decimal("12.0")).quantize(Decimal("0.01"))
+            else:
+                m_amt = amt
+            recurring_map[r.category] = recurring_map.get(r.category, Decimal("0.00")) + m_amt
+
         category_summaries: List[CategoryBudgetSummary] = []
         for cat_b in category_records:
             cat_name = str(cat_b.category)
@@ -352,6 +379,7 @@ class BudgetService:
                     remaining=rem,
                     utilization=util,
                     over_budget=over,
+                    recurring_amount=recurring_map.get(cat_name, Decimal("0.00")),
                 )
             )
 

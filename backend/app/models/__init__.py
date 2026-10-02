@@ -7,6 +7,8 @@ from app.models.goal import Goal, GoalContribution
 from app.models.account import ConnectedAccount, AccountConsent, SyncRun
 from app.models.reconciliation import TransactionReconciliation
 from app.models.merchant_preference import MerchantCategoryPreference
+from app.models.recurring_expense import RecurringExpense
+from app.models.recurring_preference import RecurringPreference
 
 __all__ = [
     "Base",
@@ -21,5 +23,7 @@ __all__ = [
     "SyncRun",
     "TransactionReconciliation",
     "MerchantCategoryPreference",
+    "RecurringExpense",
+    "RecurringPreference",
 ]
 

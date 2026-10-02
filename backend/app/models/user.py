@@ -11,6 +11,8 @@ if TYPE_CHECKING:
     from app.models.goal import Goal
     from app.models.account import ConnectedAccount, AccountConsent, SyncRun
     from app.models.merchant_preference import MerchantCategoryPreference
+    from app.models.recurring_expense import RecurringExpense
+    from app.models.recurring_preference import RecurringPreference
 
 
 class User(Base):
@@ -87,6 +89,20 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
         order_by="MerchantCategoryPreference.normalized_merchant.asc()",
+    )
+
+    recurring_expenses: Mapped[list["RecurringExpense"]] = relationship(
+        "RecurringExpense",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="RecurringExpense.next_expected_date.asc()",
+    )
+
+    recurring_preferences: Mapped[list["RecurringPreference"]] = relationship(
+        "RecurringPreference",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="RecurringPreference.normalized_merchant.asc()",
     )
 
     @property
