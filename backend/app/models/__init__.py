@@ -9,6 +9,7 @@ from app.models.reconciliation import TransactionReconciliation
 from app.models.merchant_preference import MerchantCategoryPreference
 from app.models.recurring_expense import RecurringExpense
 from app.models.recurring_preference import RecurringPreference
+from app.models.forecast_preference import ForecastPreference
 
 __all__ = [
     "Base",
@@ -25,5 +26,6 @@ __all__ = [
     "MerchantCategoryPreference",
     "RecurringExpense",
     "RecurringPreference",
+    "ForecastPreference",
 ]
 

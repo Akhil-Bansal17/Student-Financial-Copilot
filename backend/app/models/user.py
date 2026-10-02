@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from app.models.merchant_preference import MerchantCategoryPreference
     from app.models.recurring_expense import RecurringExpense
     from app.models.recurring_preference import RecurringPreference
+    from app.models.forecast_preference import ForecastPreference
 
 
 class User(Base):
@@ -103,6 +104,13 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
         order_by="RecurringPreference.normalized_merchant.asc()",
+    )
+
+    forecast_preference: Mapped[Optional["ForecastPreference"]] = relationship(
+        "ForecastPreference",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
 
     @property
