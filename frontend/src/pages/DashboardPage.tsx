@@ -43,6 +43,7 @@ import { SpendingTrendSection } from '@/components/analytics/SpendingTrendSectio
 import { DashboardBudgetOverview } from '@/components/budgets/DashboardBudgetOverview'
 import { DashboardRecurringPreview } from '@/components/recurring/DashboardRecurringPreview'
 import { DashboardForecastCard } from '@/components/forecast/DashboardForecastCard'
+import { DashboardFinancialHealthCard } from '@/components/financialHealth/DashboardFinancialHealthCard'
 import { DashboardGoalsOverview } from '@/components/goals/DashboardGoalsOverview'
 import { DashboardInsightsPreview } from '@/components/insights/DashboardInsightsPreview'
 import { useAuth } from '@/hooks/useAuth'
@@ -515,6 +516,8 @@ export function DashboardPage() {
         />
 
         <DashboardRecurringPreview />
+
+        <DashboardFinancialHealthCard />
 
         <DashboardForecastCard />
 
