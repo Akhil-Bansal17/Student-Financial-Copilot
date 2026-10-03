@@ -14,6 +14,7 @@ from app.api.v1.endpoints import (
     merchant_preferences,
     recurring,
     forecast,
+    financial_health,
 )
 
 api_router = APIRouter()
@@ -59,4 +60,7 @@ api_router.include_router(recurring.router, tags=["Recurring Expenses & Subscrip
 
 # Register cash flow forecasting & financial planning router (Phase 13)
 api_router.include_router(forecast.router, tags=["Cash Flow Forecasting & Financial Planning"])
+
+# Register financial health & smart action center router (Phase 14)
+api_router.include_router(financial_health.router, tags=["Financial Health & Smart Action Center"])
 
