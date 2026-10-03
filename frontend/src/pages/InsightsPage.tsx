@@ -11,6 +11,8 @@ import {
   Layers,
   Wallet,
   RefreshCw,
+  Activity,
+  ChevronRight,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -139,6 +141,33 @@ export function InsightsPage() {
           Deterministic financial observations derived strictly from verified database records
         </p>
       </div>
+
+      {/* Financial Health & Smart Actions Banner */}
+      <Card className="rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 via-indigo-500/5 to-card p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center space-x-3.5">
+          <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
+            <Activity className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-foreground">Financial Health & Smart Action Center</h3>
+              <Badge variant="outline" className="text-[10px] text-primary border-primary/30 font-semibold">
+                Phase 14
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Review your 7-dimension health assessment and prioritized action recommendations.
+            </p>
+          </div>
+        </div>
+        <Link
+          to="/financial-health"
+          className="inline-flex items-center justify-center rounded-xl text-xs font-semibold gap-1 shrink-0 self-start sm:self-auto h-8 px-3 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
+        >
+          <span>View Health Center</span>
+          <ChevronRight className="h-3.5 w-3.5" />
+        </Link>
+      </Card>
 
       {/* 2. Month Navigator */}
       <MonthNavigator
