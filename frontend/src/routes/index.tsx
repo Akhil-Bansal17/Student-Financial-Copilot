@@ -15,6 +15,7 @@ import { MorePage } from '@/pages/MorePage'
 import { ConnectedAccountsPage } from '@/pages/ConnectedAccountsPage'
 import { RecurringPage } from '@/pages/RecurringPage'
 import { ForecastPage } from '@/pages/ForecastPage'
+import { FinancialHealthPage } from '@/pages/FinancialHealthPage'
 import { OnboardingPage } from '@/pages/OnboardingPage'
 
 export function AppRoutes() {
@@ -31,6 +32,7 @@ export function AppRoutes() {
           <Route path="/insights" element={<InsightsPage />} />
           <Route path="/budgets" element={<BudgetsPage />} />
           <Route path="/goals" element={<GoalsPage />} />
+          <Route path="/financial-health" element={<FinancialHealthPage />} />
           <Route path="/more" element={<MorePage />} />
           <Route path="/connected-accounts" element={<ConnectedAccountsPage />} />
         </Route>

@@ -12,6 +12,7 @@ const routeTitles: Record<string, string> = {
   '/insights': 'Spending Insights',
   '/budgets': 'Budget Planning',
   '/goals': 'Savings Goals',
+  '/financial-health': 'Financial Health',
   '/more': 'Settings & Preferences',
   '/connected-accounts': 'Connected Bank Accounts',
 }
