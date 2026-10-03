@@ -322,6 +322,55 @@ class FinancialContextBuilder:
             "warnings": forecast_res.warnings,
         }
 
+        # 12. Authoritative Financial Health & Smart Actions (Phase 14)
+        from app.services.financial_health_service import FinancialHealthService
+        health_res = FinancialHealthService.evaluate_financial_health(
+            db=db,
+            user_id=user_id,
+            year=year,
+            month=month,
+        )
+        health_serialized = {
+            "overall_status_label": health_res.overview.overall_status_label,
+            "overall_summary": health_res.overview.overall_summary,
+            "data_sufficiency": health_res.data_sufficiency,
+            "primary_attention_dimension": health_res.overview.primary_attention_dimension,
+            "dimensions": {
+                dim_k: {
+                    "name": dim_v.name,
+                    "status": dim_v.status,
+                    "label": dim_v.label,
+                    "summary": dim_v.summary,
+                    "is_positive": dim_v.is_positive,
+                    "is_attention_required": dim_v.is_attention_required,
+                }
+                for dim_k, dim_v in health_res.dimensions.items()
+            },
+            "top_actions": [
+                {
+                    "title": act.title,
+                    "priority": act.priority.value,
+                    "description": act.description,
+                    "reason": act.reason,
+                    "recommended_next_step": act.recommended_next_step,
+                }
+                for act in health_res.actions[:5]
+            ],
+            "positive_signals": [
+                {
+                    "title": sig.title,
+                    "dimension": sig.dimension,
+                    "description": sig.description,
+                }
+                for sig in health_res.positive_signals[:5]
+            ],
+            "bank_freshness": {
+                "has_connected_bank": health_res.bank_freshness.has_connected_bank,
+                "is_stale": health_res.bank_freshness.is_stale,
+                "freshness_description": health_res.bank_freshness.freshness_description,
+            },
+        }
+
         return {
             "period": period_str,
             "has_sufficient_data": has_sufficient_data,
@@ -382,5 +431,6 @@ class FinancialContextBuilder:
                 "overdue_payments": overdue_serialized,
             },
             "cash_flow_forecast": forecast_serialized,
+            "financial_health": health_serialized,
             "deterministic_observations": deterministic_insights_serialized,
         }
