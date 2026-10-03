@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   CalendarClock,
   TrendingUp,
+  Activity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BackendStatusBadge } from '@/components/common/BackendStatusBadge'
@@ -22,6 +23,7 @@ const navItems = [
   { label: 'Activity', path: '/activity', icon: ListOrdered, description: 'Transactions & allowances' },
   { label: 'Copilot', path: '/copilot', icon: Bot, description: 'AI financial explanations' },
   { label: 'Forecast', path: '/forecast', icon: TrendingUp, description: 'Cash flow & projections' },
+  { label: 'Health', path: '/financial-health', icon: Activity, description: 'Financial health & smart actions' },
   { label: 'Recurring', path: '/recurring', icon: CalendarClock, description: 'Subscriptions & recurring bills' },
   { label: 'Insights', path: '/insights', icon: Sparkles, description: 'Spending intelligence' },
   { label: 'Budgets', path: '/budgets', icon: SlidersHorizontal, description: 'Spending limits & tracking' },
