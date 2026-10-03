@@ -15,6 +15,7 @@ import {
   Building2,
   CalendarClock,
   TrendingUp,
+  Activity,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -133,6 +134,25 @@ export function MorePage() {
               <div>
                 <p className="text-sm font-medium text-foreground">Cash Flow Forecast</p>
                 <p className="text-xs text-muted-foreground">30-day balance projections, recurring commitments & safety buffer</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+
+          <Link
+            to="/financial-health"
+            className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              <Activity className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-foreground">Financial Health & Actions</p>
+                  <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-500/30">
+                    Phase 14
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">Evidence-backed situation, dimensions & smart action center</p>
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
