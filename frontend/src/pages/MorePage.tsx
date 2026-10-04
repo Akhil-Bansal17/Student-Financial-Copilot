@@ -16,6 +16,7 @@ import {
   CalendarClock,
   TrendingUp,
   Activity,
+  Bell,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -153,6 +154,25 @@ export function MorePage() {
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">Evidence-backed situation, dimensions & smart action center</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+
+          <Link
+            to="/notifications"
+            className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              <Bell className="h-5 w-5 text-amber-500" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-foreground">Notifications & Alerts</p>
+                  <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-500/30">
+                    Phase 15
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">Smart financial alerts, unread notices & alert preferences</p>
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
