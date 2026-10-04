@@ -24,7 +24,8 @@ CRITICAL INSTRUCTIONS & STRICT BOUNDARIES:
 9. RECURRING EXPENSES & SUBSCRIPTIONS: Authoritative recurring expenses and subscriptions are provided in recurring_intelligence. When asked about subscriptions or recurring bills (e.g. "What subscriptions do I have?"), use ONLY the items listed under recurring_intelligence.subscriptions and recurring_intelligence.recurring_expenses. If subscription_count is 0, state: "I don't have enough transaction history to reliably identify recurring subscriptions yet." Never fabricate subscriptions.
 10. CASH FLOW FORECASTING & ESTIMATES: Authoritative deterministic projections are provided in cash_flow_forecast. When the student asks forward-looking questions (e.g. "How much money might I have at the end of this month?", "What payments are coming up?", "Can I afford to put ₹2,000 toward my goal?"), answer using ONLY cash_flow_forecast. Always use estimate phrasing ("estimated balance", "projected cash flow", "expected recurring commitment"). NEVER state or imply a future balance is guaranteed. If data_sufficiency is "INSUFFICIENT", clearly disclose that historical data is limited.
 11. FINANCIAL HEALTH & SMART ACTION CENTER: Authoritative deterministic financial health evaluation is provided in financial_health. When asked how healthy their financial situation is or how they are doing (e.g. "How am I doing financially?", "How healthy is my financial situation?"), use financial_health.overall_status_label, overall_summary, and dimensions. When asked what to focus on or what actions to take (e.g. "What should I focus on?", "What should I pay attention to?"), explain the verified actions from financial_health.top_actions. When asked "Am I going to run out of money?", synthesize cash_flow_forecast and financial_health.dimensions.CASH_BUFFER. NEVER fabricate an arbitrary numeric score (like 82/100).
-12. FORMATTING: Use friendly student-appropriate language. Highlight key amounts in bold (e.g. **₹4,200.00**). Use clean paragraphs and bullet points for readability. Avoid jargon.
+12. SMART ALERTS & NOTIFICATIONS: Authoritative unread notifications and alerts are provided in notifications_summary. When asked about alerts or urgent matters (e.g. "Do I have any urgent alerts?", "What do I need to worry about?"), use notifications_summary.unread_total_count and recent_unread_alerts. If unread_total_count is 0, reassure the user that there are no active urgent alerts. You must NOT create, fabricate, dismiss, or mark notifications as read.
+13. FORMATTING: Use friendly student-appropriate language. Highlight key amounts in bold (e.g. **₹4,200.00**). Use clean paragraphs and bullet points for readability. Avoid jargon.
 
 --- VERIFIED FINANCIAL CONTEXT ---
 {context_json}
@@ -88,12 +89,13 @@ class MockAIProvider(AIProvider):
             ("transaction" in prompt_lower and any(w in prompt_lower for w in ["create", "add", "insert", "record", "delete", "remove", "drop", "update", "modify"]))
             or ("budget" in prompt_lower and any(w in prompt_lower for w in ["create", "set", "delete", "remove", "update", "modify", "change limit"]))
             or ("goal" in prompt_lower and any(w in prompt_lower for w in ["create", "delete", "remove", "contribute", "deposit"]))
+            or ("notification" in prompt_lower and any(w in prompt_lower for w in ["create", "delete", "remove", "mark as read", "dismiss", "clear"]))
             or any(trigger in prompt_lower for trigger in ["transfer money", "send money", "change my balance", "modify my balance", "wire money"])
         )
         if is_mutation_attempt:
             return (
                 "I am a read-only financial assistant. I cannot directly create, modify, or delete your transactions, "
-                "budgets, or savings goals. You can manage your finances directly in the Activity, Budgets, and Goals tabs."
+                "budgets, savings goals, or notifications. You can manage them directly in their respective sections."
             )
 
         acc = financial_context.get("account_summary", {})
@@ -171,6 +173,23 @@ class MockAIProvider(AIProvider):
                 surplus = max(Decimal("0.00"), safe_min - thresh)
                 lines.append(f"After accounting for known commitments and a minimum buffer of ₹{thresh:,.2f}, your estimated safe discretionary surplus is approximately **₹{surplus:,.2f}**.")
 
+            return "\n".join(lines)
+
+        # Smart Alerts & Notifications queries ("alert", "alerts", "notification", "notifications", "worry about", "urgent")
+        if any(w in prompt_lower for w in ["alert", "alerts", "notification", "notifications", "worry about", "urgent"]):
+            notif_ctx = financial_context.get("notifications_summary", {})
+            unread_total = notif_ctx.get("unread_total_count", 0)
+            unread_crit = notif_ctx.get("unread_critical_count", 0)
+            unread_high = notif_ctx.get("unread_high_count", 0)
+            recent_alerts = notif_ctx.get("recent_unread_alerts", [])
+
+            if unread_total == 0:
+                return "You have no unread notifications or urgent alerts at the moment. All your tracked financial metrics look clear!"
+
+            lines = [f"You have **{unread_total}** unread notification(s) ({unread_crit} critical, {unread_high} high priority):"]
+            for alert in recent_alerts[:4]:
+                lines.append(f"- **[{alert['priority']}] {alert['title']}**: {alert['message']}")
+            lines.append("You can review and manage all your notifications in the Notifications Center.")
             return "\n".join(lines)
 
         has_data = financial_context.get("has_sufficient_data", False)
