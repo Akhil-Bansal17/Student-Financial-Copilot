@@ -169,14 +169,28 @@ class BankSyncScheduler:
             if should_close:
                 db.close()
 
+    @classmethod
+    def _run_alerts_cycle(cls):
+        """Execute automated smart alert evaluation cycle across all active users."""
+        from app.services.smart_alert_service import SmartAlertService
+        db = SessionLocal()
+        try:
+            SmartAlertService.evaluate_all_users_alerts(db)
+        except Exception as exc:
+            logger.warning(f"Error evaluating smart alerts in background scheduler: {exc}")
+        finally:
+            db.close()
+
     async def _scheduler_loop(self):
-        logger.info(f"Starting automatic bank sync scheduler loop (interval: {settings.BANK_SYNC_INTERVAL_MINUTES}m).")
+        logger.info(f"Starting automatic bank sync and smart alert scheduler loop (interval: {settings.BANK_SYNC_INTERVAL_MINUTES}m).")
         while self._running:
             try:
-                # Run cycle in worker thread with fresh DB session
+                # Run sync cycle in worker thread with fresh DB session
                 await asyncio.to_thread(self.run_sync_cycle)
+                # Run smart alert evaluation in worker thread with fresh DB session
+                await asyncio.to_thread(self._run_alerts_cycle)
             except Exception as exc:
-                logger.error(f"Error executing bank sync scheduler cycle: {exc}", exc_info=True)
+                logger.error(f"Error executing scheduler cycle: {exc}", exc_info=True)
 
             # Sleep until next check (minimum 60s check frequency)
             check_sleep = max(60, settings.BANK_SYNC_INTERVAL_MINUTES * 60)
