@@ -371,6 +371,33 @@ class FinancialContextBuilder:
             },
         }
 
+        # 13. Authoritative Notifications & Smart Alerts Summary (Phase 15)
+        from app.models.notification import Notification
+        unread_notifications = (
+            db.query(Notification)
+            .filter(
+                Notification.user_id == user_id,
+                Notification.is_read.is_(False),
+                (Notification.expires_at.is_(None) | (Notification.expires_at > now)),
+            )
+            .order_by(
+                Notification.created_at.desc(),
+            )
+            .all()
+        )
+        unread_total = len(unread_notifications)
+        unread_critical = sum(1 for n in unread_notifications if n.priority == "CRITICAL")
+        unread_high = sum(1 for n in unread_notifications if n.priority == "HIGH")
+        recent_alerts_serialized = [
+            {
+                "title": n.title,
+                "priority": n.priority,
+                "message": n.message,
+                "created_at": n.created_at.isoformat() if n.created_at else None,
+            }
+            for n in unread_notifications[:5]
+        ]
+
         return {
             "period": period_str,
             "has_sufficient_data": has_sufficient_data,
@@ -432,5 +459,11 @@ class FinancialContextBuilder:
             },
             "cash_flow_forecast": forecast_serialized,
             "financial_health": health_serialized,
+            "notifications_summary": {
+                "unread_total_count": unread_total,
+                "unread_critical_count": unread_critical,
+                "unread_high_count": unread_high,
+                "recent_unread_alerts": recent_alerts_serialized,
+            },
             "deterministic_observations": deterministic_insights_serialized,
         }
