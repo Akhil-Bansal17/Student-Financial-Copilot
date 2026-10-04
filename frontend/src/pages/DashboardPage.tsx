@@ -44,6 +44,7 @@ import { DashboardBudgetOverview } from '@/components/budgets/DashboardBudgetOve
 import { DashboardRecurringPreview } from '@/components/recurring/DashboardRecurringPreview'
 import { DashboardForecastCard } from '@/components/forecast/DashboardForecastCard'
 import { DashboardFinancialHealthCard } from '@/components/financialHealth/DashboardFinancialHealthCard'
+import { DashboardAlertsCard } from '@/components/notifications/DashboardAlertsCard'
 import { DashboardGoalsOverview } from '@/components/goals/DashboardGoalsOverview'
 import { DashboardInsightsPreview } from '@/components/insights/DashboardInsightsPreview'
 import { useAuth } from '@/hooks/useAuth'
@@ -243,6 +244,9 @@ export function DashboardPage() {
           </Button>
         </div>
       </div>
+
+      {/* Urgent Notifications & Alerts Summary */}
+      <DashboardAlertsCard />
 
       {/* SECTION: CURRENT ACCOUNT STATE */}
       <div className="space-y-3">
