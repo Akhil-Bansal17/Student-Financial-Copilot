@@ -1,11 +1,25 @@
+import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { Bell, GraduationCap } from 'lucide-react'
 import { BackendStatusBadge } from '@/components/common/BackendStatusBadge'
+import { notificationService, notificationKeys } from '@/services/notificationService'
 
 interface HeaderProps {
   title?: string
 }
 
 export function Header({ title }: HeaderProps) {
+  const { data: unreadData } = useQuery({
+    queryKey: notificationKeys.unreadCount(),
+    queryFn: () => notificationService.getUnreadCount(),
+    refetchInterval: 30000,
+  })
+
+  const unreadCount = unreadData?.unread_count || 0
+  const criticalCount = unreadData?.critical_count || 0
+  const accessibleLabel =
+    unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'
+
   return (
     <header className="sticky top-0 z-30 w-full bg-background/80 backdrop-blur-md border-b border-border/60 transition-colors">
       <div className="flex items-center justify-between h-14 sm:h-16 px-4 sm:px-6 max-w-5xl mx-auto">
@@ -33,16 +47,25 @@ export function Header({ title }: HeaderProps) {
         <div className="flex items-center space-x-2 sm:space-x-3">
           <BackendStatusBadge />
 
-          <button
-            type="button"
-            aria-label="Notifications"
+          <Link
+            to="/notifications"
+            aria-label={accessibleLabel}
             className="rounded-full p-2 text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors touch-target flex items-center justify-center relative"
           >
             <Bell className="h-4 w-4" />
-            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" />
-          </button>
+            {unreadCount > 0 && (
+              <span
+                className={`absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center shadow-xs animate-in zoom-in-75 duration-200 ${
+                  criticalCount > 0 ? 'bg-rose-500' : 'bg-primary'
+                }`}
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </Link>
         </div>
       </div>
     </header>
   )
 }
+
