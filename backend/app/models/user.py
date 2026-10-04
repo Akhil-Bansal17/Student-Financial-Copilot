@@ -14,6 +14,8 @@ if TYPE_CHECKING:
     from app.models.recurring_expense import RecurringExpense
     from app.models.recurring_preference import RecurringPreference
     from app.models.forecast_preference import ForecastPreference
+    from app.models.notification import Notification
+    from app.models.notification_preference import NotificationPreference
 
 
 class User(Base):
@@ -108,6 +110,20 @@ class User(Base):
 
     forecast_preference: Mapped[Optional["ForecastPreference"]] = relationship(
         "ForecastPreference",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+    notifications: Mapped[list["Notification"]] = relationship(
+        "Notification",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="Notification.created_at.desc()",
+    )
+
+    notification_preference: Mapped[Optional["NotificationPreference"]] = relationship(
+        "NotificationPreference",
         back_populates="user",
         uselist=False,
         cascade="all, delete-orphan",
