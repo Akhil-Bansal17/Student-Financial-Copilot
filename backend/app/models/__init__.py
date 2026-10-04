@@ -10,6 +10,8 @@ from app.models.merchant_preference import MerchantCategoryPreference
 from app.models.recurring_expense import RecurringExpense
 from app.models.recurring_preference import RecurringPreference
 from app.models.forecast_preference import ForecastPreference
+from app.models.notification import Notification
+from app.models.notification_preference import NotificationPreference
 
 __all__ = [
     "Base",
@@ -27,5 +29,7 @@ __all__ = [
     "RecurringExpense",
     "RecurringPreference",
     "ForecastPreference",
+    "Notification",
+    "NotificationPreference",
 ]
 
