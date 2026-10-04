@@ -15,6 +15,7 @@ from app.api.v1.endpoints import (
     recurring,
     forecast,
     financial_health,
+    notifications,
 )
 
 api_router = APIRouter()
@@ -63,4 +64,7 @@ api_router.include_router(forecast.router, tags=["Cash Flow Forecasting & Financ
 
 # Register financial health & smart action center router (Phase 14)
 api_router.include_router(financial_health.router, tags=["Financial Health & Smart Action Center"])
+
+# Register smart alerts & notification center router (Phase 15)
+api_router.include_router(notifications.router, tags=["Smart Alerts & Notification Center"])
 
