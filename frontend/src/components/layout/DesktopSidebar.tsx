@@ -13,6 +13,7 @@ import {
   CalendarClock,
   TrendingUp,
   Activity,
+  Bell,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BackendStatusBadge } from '@/components/common/BackendStatusBadge'
@@ -28,6 +29,7 @@ const navItems = [
   { label: 'Insights', path: '/insights', icon: Sparkles, description: 'Spending intelligence' },
   { label: 'Budgets', path: '/budgets', icon: SlidersHorizontal, description: 'Spending limits & tracking' },
   { label: 'Goals', path: '/goals', icon: Target, description: 'Student savings targets' },
+  { label: 'Notifications', path: '/notifications', icon: Bell, description: 'Smart alerts & notification center' },
   { label: 'More', path: '/more', icon: MoreHorizontal, description: 'Settings, campus & accounts' },
 ]
 
