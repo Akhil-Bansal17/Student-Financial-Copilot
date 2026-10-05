@@ -16,6 +16,7 @@ from app.api.v1.endpoints import (
     forecast,
     financial_health,
     notifications,
+    personalization,
 )
 
 api_router = APIRouter()
@@ -67,4 +68,8 @@ api_router.include_router(financial_health.router, tags=["Financial Health & Sma
 
 # Register smart alerts & notification center router (Phase 15)
 api_router.include_router(notifications.router, tags=["Smart Alerts & Notification Center"])
+
+# Register smart financial personalization & adaptive intelligence router (Phase 16)
+api_router.include_router(personalization.router, tags=["Smart Financial Personalization & Adaptive Intelligence"])
+
 
