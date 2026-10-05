@@ -358,7 +358,15 @@ class RecurringAlertRule(BaseAlertRule):
             )
 
             today_date = now.date()
-            upcoming_horizon = today_date + datetime.timedelta(days=3)
+            days_lead = 3
+            try:
+                from app.services.personalization_service import PersonalizationService
+                profile = PersonalizationService.get_or_create_profile(db, user.id)
+                if profile.is_personalization_enabled and profile.recurring_alert_days_before in (1, 3, 5, 7):
+                    days_lead = profile.recurring_alert_days_before
+            except Exception:
+                days_lead = 3
+            upcoming_horizon = today_date + datetime.timedelta(days=days_lead)
 
             for rec in recurring_list:
                 if not rec.next_expected_date:
@@ -695,6 +703,13 @@ class SmartAlertService:
                 suppressed_count=0,
                 created_notifications=[],
             )
+
+        # Apply deterministic personalization & sensitivity filtering
+        try:
+            from app.services.personalization_service import PersonalizationService
+            all_candidates = PersonalizationService.filter_alert_candidates(db, user.id, all_candidates)
+        except Exception as exc:
+            logger.warning(f"Error applying personalization alert filtering for user {user.id}: {exc}")
 
         # Batch query existing dedupe keys to eliminate redundant individual lookups
         candidate_dedupes = [c.dedupe_key for c in all_candidates]
