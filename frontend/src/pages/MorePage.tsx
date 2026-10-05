@@ -11,6 +11,7 @@ import {
   Mail,
   ShieldCheck,
   SlidersHorizontal,
+  Sliders,
   Bot,
   Building2,
   CalendarClock,
@@ -173,6 +174,25 @@ export function MorePage() {
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">Smart financial alerts, unread notices & alert preferences</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+
+          <Link
+            to="/personalization"
+            className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              <Sliders className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-foreground">Personalization & Focus</p>
+                  <Badge variant="outline" className="text-[10px] text-indigo-600 border-indigo-500/30">
+                    Phase 16
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">Adaptive financial priority, alert sensitivity & thresholds</p>
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
