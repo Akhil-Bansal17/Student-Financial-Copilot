@@ -239,9 +239,18 @@ class FinancialHealthService:
         for act in health.actions:
             by_priority[act.priority.value] = by_priority.get(act.priority.value, 0) + 1
 
+        # Phase 16: Adapt presentation ranking to user's financial priority while preserving priority tiers
+        actions = health.actions
+        try:
+            from app.services.personalization_service import PersonalizationService
+            profile = PersonalizationService.get_or_create_profile(db, user_id)
+            actions = PersonalizationService.prioritize_actions(profile, health.actions)
+        except Exception:
+            actions = health.actions
+
         return SmartActionsResponse(
-            actions=health.actions,
-            total_count=len(health.actions),
+            actions=actions,
+            total_count=len(actions),
             by_priority=by_priority,
             generated_at=health.generated_at,
         )
