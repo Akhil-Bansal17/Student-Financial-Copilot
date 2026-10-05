@@ -14,6 +14,8 @@ const routeTitles: Record<string, string> = {
   '/goals': 'Savings Goals',
   '/financial-health': 'Financial Health',
   '/notifications': 'Notifications & Alerts',
+  '/personalization': 'Personalization & Focus',
+  '/settings/personalization': 'Personalization & Focus',
   '/more': 'Settings & Preferences',
   '/connected-accounts': 'Connected Bank Accounts',
 }
