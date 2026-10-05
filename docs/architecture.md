@@ -156,3 +156,61 @@ The recurring engine deterministically clusters historical transactions by norma
    - Emits structured high-priority financial insights for price increases and overdue renewals.
    - Feeds ground-truth recurring context to AI Financial Copilot.
 
+---
+
+## 7. Smart Financial Personalization & Adaptive Intelligence (Phase 16)
+
+The personalization layer introduces deterministic, adaptive intelligence tailored to the student's explicit goals and observed spending patterns without altering authoritative financial calculations or relying on LLMs for calculations.
+
+```text
+USER FINANCIAL DATA
+        ↓
+AUTHORITATIVE FINANCIAL SERVICES
+        ↓
+BEHAVIORAL / PREFERENCE SIGNALS
+        ↓
+PERSONALIZATION ENGINE
+        ↓
+┌───────────────┬────────────────┬─────────────────┐
+│ Notifications │ Dashboard/UI   │ AI Copilot      │
+└───────────────┴────────────────┴─────────────────┘
+```
+
+1. **Threshold Ownership & Single Source of Truth**:
+   - `minimum_balance_threshold` is strictly owned by Phase 13 `ForecastPreference`. Personalization references it rather than duplicating it.
+   - `large_transaction_threshold` defaults to a deterministic outlier baseline calculated using Interquartile Range (IQR) on verified expenses, but can be customized by the student.
+   - Authoritative calculation services (`AnalyticsService`, `BudgetService`, `GoalService`, `CashFlowForecastService`, `FinancialHealthService`, `NotificationAlertService`) remain the sole source of financial truth.
+
+2. **Observed Behavioral Signals & Data Sufficiency**:
+   - Calculates signals over a 90-day verified ledger window:
+     - Median transaction amount (robust against outlier distortion)
+     - IQR-based upper spend fence: $\max(Q_3 + 1.5 \times \text{IQR}, 2.5 \times \text{median}, 1000)$
+     - Normalized frequent counterparties (integrating with Phase 11 `TransactionNormalizationService`)
+     - Frequent spending categories and proportion of total outflow
+     - Spending timing: weekday vs. weekend spend allocation and monthly progression (start, mid, end)
+   - Enforces strict data-sufficiency tiers before presenting behavioral observations:
+     - `< 5` transactions: `INSUFFICIENT`
+     - `5 – 14` transactions: `LIMITED`
+     - `15 – 44` transactions: `MODERATE`
+     - `45+` transactions: `STRONG`
+
+3. **Adaptive Alert Sensitivity & Safety Guarantees**:
+   - `CONSERVATIVE`: Delivers all candidate notifications, including early warnings and pacing reminders.
+   - `BALANCED`: Delivers standard alerts and informational items matching user's selected financial focus.
+   - `RELAXED`: Suppresses general informational and low-priority alerts.
+   - **Absolute Safety Rule**: Safety-critical events (`FORECAST_NEGATIVE_BALANCE`, `FINANCIAL_HEALTH_CRITICAL`, `BUDGET_EXCEEDED`, and `BANK_SYNC_FAILED`) are **NEVER** suppressed regardless of sensitivity settings.
+   - Recurring reminder timing allows configurable lead intervals (1, 3, 5, or 7 days prior).
+
+4. **Personalized Smart Actions**:
+   - Phase 14 Smart Actions are prioritized based on user's active `financial_priority`:
+     - `BUILD_BUFFER`: Elevates buffer and deficit protections within tiers.
+     - `CONTROL_SPENDING` & `STAY_WITHIN_BUDGET`: Elevates budget overruns and spending velocity warnings.
+     - `REACH_GOALS` & `SAVE_MORE`: Elevates milestone and savings pace items.
+   - Strict tier hierarchy is preserved: `CRITICAL` actions always precede `HIGH`, which always precede `MEDIUM/LOW/INFO`.
+
+5. **AI Financial Copilot Grounding & Security Defense**:
+   - `FinancialContextBuilder` injects verified personalization metadata (`financial_priority`, `alert_sensitivity`, `data_sufficiency`, `typical_transaction_amount`, `spending_timing`).
+   - Copilot system instructions enforce that personalization preferences reflect stated choices, never override calculations, and never hallucinate unrecorded user preferences.
+   - Prompt-injection defenses actively reject natural-language requests attempting to mutate personalization settings or financial records.
+
+
