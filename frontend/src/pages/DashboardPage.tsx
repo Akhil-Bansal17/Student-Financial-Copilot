@@ -45,6 +45,7 @@ import { DashboardRecurringPreview } from '@/components/recurring/DashboardRecur
 import { DashboardForecastCard } from '@/components/forecast/DashboardForecastCard'
 import { DashboardFinancialHealthCard } from '@/components/financialHealth/DashboardFinancialHealthCard'
 import { DashboardAlertsCard } from '@/components/notifications/DashboardAlertsCard'
+import { FinancialFocusCard } from '@/components/personalization/FinancialFocusCard'
 import { DashboardGoalsOverview } from '@/components/goals/DashboardGoalsOverview'
 import { DashboardInsightsPreview } from '@/components/insights/DashboardInsightsPreview'
 import { useAuth } from '@/hooks/useAuth'
@@ -247,6 +248,9 @@ export function DashboardPage() {
 
       {/* Urgent Notifications & Alerts Summary */}
       <DashboardAlertsCard />
+
+      {/* Adaptive Financial Focus Card (Phase 16) */}
+      <FinancialFocusCard />
 
       {/* SECTION: CURRENT ACCOUNT STATE */}
       <div className="space-y-3">
