@@ -105,3 +105,5 @@ export interface ApiErrorPayload {
 export * from './copilot'
 export * from './financialHealth'
 export * from './notification'
+export * from './personalization'
+
