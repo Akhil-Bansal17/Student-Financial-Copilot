@@ -17,6 +17,7 @@ import { RecurringPage } from '@/pages/RecurringPage'
 import { ForecastPage } from '@/pages/ForecastPage'
 import { FinancialHealthPage } from '@/pages/FinancialHealthPage'
 import { NotificationsPage } from '@/pages/NotificationsPage'
+import { PersonalizationPage } from '@/pages/PersonalizationPage'
 import { OnboardingPage } from '@/pages/OnboardingPage'
 
 export function AppRoutes() {
@@ -35,6 +36,8 @@ export function AppRoutes() {
           <Route path="/goals" element={<GoalsPage />} />
           <Route path="/financial-health" element={<FinancialHealthPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/personalization" element={<PersonalizationPage />} />
+          <Route path="/settings/personalization" element={<PersonalizationPage />} />
           <Route path="/more" element={<MorePage />} />
           <Route path="/connected-accounts" element={<ConnectedAccountsPage />} />
         </Route>
