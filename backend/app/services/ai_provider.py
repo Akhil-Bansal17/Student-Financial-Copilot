@@ -26,6 +26,7 @@ CRITICAL INSTRUCTIONS & STRICT BOUNDARIES:
 11. FINANCIAL HEALTH & SMART ACTION CENTER: Authoritative deterministic financial health evaluation is provided in financial_health. When asked how healthy their financial situation is or how they are doing (e.g. "How am I doing financially?", "How healthy is my financial situation?"), use financial_health.overall_status_label, overall_summary, and dimensions. When asked what to focus on or what actions to take (e.g. "What should I focus on?", "What should I pay attention to?"), explain the verified actions from financial_health.top_actions. When asked "Am I going to run out of money?", synthesize cash_flow_forecast and financial_health.dimensions.CASH_BUFFER. NEVER fabricate an arbitrary numeric score (like 82/100).
 12. SMART ALERTS & NOTIFICATIONS: Authoritative unread notifications and alerts are provided in notifications_summary. When asked about alerts or urgent matters (e.g. "Do I have any urgent alerts?", "What do I need to worry about?"), use notifications_summary.unread_total_count and recent_unread_alerts. If unread_total_count is 0, reassure the user that there are no active urgent alerts. You must NOT create, fabricate, dismiss, or mark notifications as read.
 13. FORMATTING: Use friendly student-appropriate language. Highlight key amounts in bold (e.g. **₹4,200.00**). Use clean paragraphs and bullet points for readability. Avoid jargon.
+14. PERSONALIZATION & ADAPTIVE INTELLIGENCE: Authoritative user preferences and verified behavioral signals are provided in personalization. When the student asks about their financial priority, focus, sensitivity, or personalized settings (e.g. "What is my current financial focus?", "How is my experience personalized?"), answer using ONLY personalization.financial_priority, priority_description, and behavioral observations. Personalization preferences describe stated choices and verified behavioral patterns; they NEVER override authoritative calculations. NEVER invent or assume behavioral patterns, and never claim a user prefers something unless explicitly present in personalization.
 
 --- VERIFIED FINANCIAL CONTEXT ---
 {context_json}
@@ -90,12 +91,13 @@ class MockAIProvider(AIProvider):
             or ("budget" in prompt_lower and any(w in prompt_lower for w in ["create", "set", "delete", "remove", "update", "modify", "change limit"]))
             or ("goal" in prompt_lower and any(w in prompt_lower for w in ["create", "delete", "remove", "contribute", "deposit"]))
             or ("notification" in prompt_lower and any(w in prompt_lower for w in ["create", "delete", "remove", "mark as read", "dismiss", "clear"]))
+            or ("personalization" in prompt_lower and any(w in prompt_lower for w in ["change", "update", "set", "disable", "enable", "modify"]))
             or any(trigger in prompt_lower for trigger in ["transfer money", "send money", "change my balance", "modify my balance", "wire money"])
         )
         if is_mutation_attempt:
             return (
                 "I am a read-only financial assistant. I cannot directly create, modify, or delete your transactions, "
-                "budgets, savings goals, or notifications. You can manage them directly in their respective sections."
+                "budgets, savings goals, notifications, or personalization settings. You can manage them directly in their respective sections."
             )
 
         acc = financial_context.get("account_summary", {})
@@ -191,6 +193,23 @@ class MockAIProvider(AIProvider):
                 lines.append(f"- **[{alert['priority']}] {alert['title']}**: {alert['message']}")
             lines.append("You can review and manage all your notifications in the Notifications Center.")
             return "\n".join(lines)
+
+        # Personalization & Financial Focus queries ("personalization", "financial focus", "my priority", "financial priority", "sensitivity")
+        if any(w in prompt_lower for w in ["personalization", "financial focus", "my focus", "my priority", "financial priority", "sensitivity"]):
+            p_ctx = financial_context.get("personalization", {})
+            prio = p_ctx.get("financial_priority", "BALANCED")
+            desc = p_ctx.get("priority_description", "Maintaining a balanced overview of budget limits, buffer safety, and savings pace.")
+            sens = p_ctx.get("alert_sensitivity", "BALANCED")
+            suff = p_ctx.get("data_sufficiency", "INSUFFICIENT")
+            typical_amt = p_ctx.get("typical_transaction_amount", "0.00")
+
+            return (
+                f"Your selected financial focus is **{prio.replace('_', ' ').title()}**.\n\n"
+                f"{desc}\n\n"
+                f"- **Alert Sensitivity**: {sens.title()}\n"
+                f"- **Behavioral Evidence Level**: {suff}\n"
+                f"- **Typical Transaction Baseline**: ₹{typical_amt}"
+            )
 
         has_data = financial_context.get("has_sufficient_data", False)
         monthly = financial_context.get("monthly_analytics", {})
