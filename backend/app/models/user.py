@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from app.models.forecast_preference import ForecastPreference
     from app.models.notification import Notification
     from app.models.notification_preference import NotificationPreference
+    from app.models.personalization import PersonalizationProfile
 
 
 class User(Base):
@@ -124,6 +125,13 @@ class User(Base):
 
     notification_preference: Mapped[Optional["NotificationPreference"]] = relationship(
         "NotificationPreference",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+    personalization_profile: Mapped[Optional["PersonalizationProfile"]] = relationship(
+        "PersonalizationProfile",
         back_populates="user",
         uselist=False,
         cascade="all, delete-orphan",

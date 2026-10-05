@@ -12,6 +12,7 @@ from app.models.recurring_preference import RecurringPreference
 from app.models.forecast_preference import ForecastPreference
 from app.models.notification import Notification
 from app.models.notification_preference import NotificationPreference
+from app.models.personalization import PersonalizationProfile
 
 __all__ = [
     "Base",
@@ -31,5 +32,6 @@ __all__ = [
     "ForecastPreference",
     "Notification",
     "NotificationPreference",
+    "PersonalizationProfile",
 ]
 
