@@ -398,6 +398,10 @@ class FinancialContextBuilder:
             for n in unread_notifications[:5]
         ]
 
+        # 14. Authoritative Personalization & Adaptive Intelligence (Phase 16)
+        from app.services.personalization_service import PersonalizationService
+        personalization_context = PersonalizationService.build_copilot_personalization_context(db, user_id)
+
         return {
             "period": period_str,
             "has_sufficient_data": has_sufficient_data,
@@ -465,5 +469,6 @@ class FinancialContextBuilder:
                 "unread_high_count": unread_high,
                 "recent_unread_alerts": recent_alerts_serialized,
             },
+            "personalization": personalization_context,
             "deterministic_observations": deterministic_insights_serialized,
         }
