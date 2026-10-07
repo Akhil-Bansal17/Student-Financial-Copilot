@@ -111,6 +111,24 @@ class PersonalizationService:
         return profile
 
     @classmethod
+    def reset_profile(cls, db: Session, user_id: int) -> PersonalizationProfile:
+        """
+        Resets user personalization profile to safe system defaults.
+        Crucially does NOT mutate or delete any transactions, budgets,
+        goals, recurring expenses, connected accounts, or notifications.
+        """
+        profile = cls.get_or_create_profile(db, user_id)
+        profile.is_personalization_enabled = True
+        profile.alert_sensitivity = AlertSensitivity.BALANCED.value
+        profile.financial_priority = FinancialPriority.BALANCED.value
+        profile.large_transaction_threshold = None
+        profile.recurring_alert_days_before = 3
+        profile.updated_at = datetime.datetime.now(datetime.timezone.utc)
+        db.commit()
+        db.refresh(profile)
+        return profile
+
+    @classmethod
     def get_effective_preferences(cls, db: Session, user_id: int) -> EffectivePersonalizationConfig:
         profile = cls.get_or_create_profile(db, user_id)
         signals = BehavioralSignalService.calculate_behavioral_signals(db, user_id)
@@ -253,15 +271,15 @@ class PersonalizationService:
             return candidates
 
         sensitivity = profile.alert_sensitivity
-        if sensitivity == AlertSensitivity.CONSERVATIVE.value:
-            # Conservative = Deliver all evaluated candidate notifications
+        if sensitivity in (AlertSensitivity.CONSERVATIVE.value, AlertSensitivity.HIGH.value):
+            # Conservative / High = Deliver all evaluated candidate notifications
             return candidates
 
         filtered: List[Any] = []
         user_priority = profile.financial_priority
 
         for c in candidates:
-            # 1. Critical safety events are NEVER suppressed
+            # 1. Critical safety events are NEVER suppressed regardless of sensitivity
             if c.priority == "CRITICAL":
                 filtered.append(c)
                 continue
@@ -273,14 +291,14 @@ class PersonalizationService:
 
             # 3. Medium priority alerts
             if c.priority == "MEDIUM":
-                # Delivered in BALANCED; in RELAXED, deliver unless it's general notice
+                # Delivered in BALANCED; in RELAXED/LOW, deliver unless it's general notice
                 filtered.append(c)
                 continue
 
             # 4. Low priority alerts (spending growth, category concentration)
             if c.priority == "LOW":
-                if sensitivity == AlertSensitivity.RELAXED.value:
-                    # Relaxed suppresses low priority informational alerts
+                if sensitivity in (AlertSensitivity.RELAXED.value, AlertSensitivity.LOW.value):
+                    # Relaxed / Low suppresses low priority informational alerts
                     continue
 
                 # Balanced: deliver if spending or budget is user's priority focus
@@ -295,7 +313,7 @@ class PersonalizationService:
 
             # 5. Info priority (milestones, positive progress)
             if c.priority == "INFO":
-                if sensitivity == AlertSensitivity.RELAXED.value:
+                if sensitivity in (AlertSensitivity.RELAXED.value, AlertSensitivity.LOW.value):
                     continue
                 filtered.append(c)
 
