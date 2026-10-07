@@ -9,6 +9,8 @@ class AlertSensitivity(str, Enum):
     CONSERVATIVE = "CONSERVATIVE"
     BALANCED = "BALANCED"
     RELAXED = "RELAXED"
+    LOW = "LOW"
+    HIGH = "HIGH"
 
 
 class FinancialPriority(str, Enum):
