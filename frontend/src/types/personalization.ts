@@ -1,4 +1,4 @@
-export type AlertSensitivity = 'CONSERVATIVE' | 'BALANCED' | 'RELAXED'
+export type AlertSensitivity = 'CONSERVATIVE' | 'BALANCED' | 'RELAXED' | 'LOW' | 'HIGH'
 
 export type FinancialPriority =
   | 'SAVE_MORE'
