@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   AlertCircle,
   ShieldAlert,
+  RotateCcw,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -111,6 +112,7 @@ function PersonalizationInnerForm({ profile }: { profile: PersonalizationProfile
   const [recurringDays, setRecurringDays] = useState<number>(profile.recurring_alert_days_before || 3)
 
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [resetSuccess, setResetSuccess] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const mutation = useMutation({
@@ -119,6 +121,7 @@ function PersonalizationInnerForm({ profile }: { profile: PersonalizationProfile
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: personalizationKeys.all })
       setSaveSuccess(true)
+      setResetSuccess(false)
       setErrorMessage(null)
       setTimeout(() => setSaveSuccess(false), 4000)
     },
@@ -127,6 +130,31 @@ function PersonalizationInnerForm({ profile }: { profile: PersonalizationProfile
       setErrorMessage(err?.message || 'Failed to update personalization preferences.')
     },
   })
+
+  const resetMutation = useMutation({
+    mutationFn: () => personalizationService.resetProfile(),
+    onSuccess: (resetProf) => {
+      queryClient.invalidateQueries({ queryKey: personalizationKeys.all })
+      setIsEnabled(resetProf.is_personalization_enabled)
+      setSensitivity(resetProf.alert_sensitivity)
+      setPriority(resetProf.financial_priority)
+      setUseCustomThreshold(false)
+      setCustomThreshold('')
+      setRecurringDays(resetProf.recurring_alert_days_before || 3)
+      setResetSuccess(true)
+      setSaveSuccess(false)
+      setErrorMessage(null)
+      setTimeout(() => setResetSuccess(false), 4000)
+    },
+    onError: (err: any) => {
+      setErrorMessage(err?.message || 'Failed to reset personalization preferences.')
+    },
+  })
+
+  const handleReset = () => {
+    setErrorMessage(null)
+    resetMutation.mutate()
+  }
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
@@ -377,6 +405,13 @@ function PersonalizationInnerForm({ profile }: { profile: PersonalizationProfile
         </div>
       )}
 
+      {resetSuccess && (
+        <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3.5 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-2" data-testid="reset-success-banner">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span>Personalization preferences have been reset to default values. Ledger history and accounts remain intact.</span>
+        </div>
+      )}
+
       {errorMessage && (
         <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-3.5 text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2" data-testid="save-error-banner">
           <AlertCircle className="h-4 w-4 shrink-0" />
@@ -384,11 +419,23 @@ function PersonalizationInnerForm({ profile }: { profile: PersonalizationProfile
         </div>
       )}
 
-      {/* Save Button */}
-      <div className="flex justify-end pt-2">
+      {/* Action Buttons: Reset & Save */}
+      <div className="flex items-center justify-between pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleReset}
+          disabled={resetMutation.isPending || mutation.isPending}
+          className="rounded-xl px-4 py-2.5 font-medium border-border/80 hover:bg-muted/60 text-muted-foreground hover:text-foreground flex items-center gap-2"
+          data-testid="reset-personalization-btn"
+        >
+          <RotateCcw className="h-4 w-4" />
+          <span>{resetMutation.isPending ? 'Resetting...' : 'Reset to Defaults'}</span>
+        </Button>
+
         <Button
           type="submit"
-          disabled={mutation.isPending}
+          disabled={mutation.isPending || resetMutation.isPending}
           className="rounded-xl px-6 py-2.5 font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
           data-testid="save-personalization-btn"
         >
