@@ -25,6 +25,12 @@ export const personalizationService = {
     })
   },
 
+  async resetProfile(): Promise<PersonalizationProfile> {
+    return apiClient<PersonalizationProfile>('/api/v1/personalization/reset', {
+      method: 'POST',
+    })
+  },
+
   async getBehavioralSignals(): Promise<BehavioralSignalsResponse> {
     return apiClient<BehavioralSignalsResponse>('/api/v1/personalization/signals')
   },
