@@ -44,6 +44,19 @@ def update_personalization_profile(
     return PersonalizationProfileResponse.model_validate(updated_profile)
 
 
+@router.post("/reset", response_model=PersonalizationProfileResponse, status_code=status.HTTP_200_OK)
+def reset_personalization_profile(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> PersonalizationProfileResponse:
+    """
+    Reset the authenticated student's personalization profile back to default values.
+    Leaves all transactions, budgets, goals, recurring commitments, and bank connections completely intact.
+    """
+    reset_prof = PersonalizationService.reset_profile(db, current_user.id)
+    return PersonalizationProfileResponse.model_validate(reset_prof)
+
+
 @router.get("/signals", response_model=BehavioralSignalsResponse, status_code=status.HTTP_200_OK)
 def get_behavioral_signals(
     db: Session = Depends(get_db),
