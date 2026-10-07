@@ -242,4 +242,71 @@ describe('Personalization & Adaptive Intelligence (Phase 16)', () => {
     fireEvent.click(screen.getByTestId('tab-settings'))
     expect(await screen.findByTestId('personalization-settings-form')).toBeInTheDocument()
   })
+
+  it('resets personalization settings when reset button is clicked', async () => {
+    const defaultProfile: PersonalizationProfile = {
+      id: 1,
+      user_id: 1,
+      is_personalization_enabled: true,
+      alert_sensitivity: 'BALANCED',
+      financial_priority: 'BALANCED',
+      large_transaction_threshold: null,
+      recurring_alert_days_before: 3,
+      created_at: '2026-10-05T00:00:00Z',
+      updated_at: '2026-10-05T00:00:00Z',
+    }
+    const resetSpy = vi.spyOn(personalizationService, 'resetProfile').mockResolvedValue(defaultProfile)
+
+    renderWithClient(<PersonalizationSettingsForm />)
+
+    expect(await screen.findByTestId('personalization-settings-form')).toBeInTheDocument()
+
+    const resetBtn = screen.getByTestId('reset-personalization-btn')
+    fireEvent.click(resetBtn)
+
+    await waitFor(() => {
+      expect(resetSpy).toHaveBeenCalled()
+    })
+
+    expect(await screen.findByTestId('reset-success-banner')).toBeInTheDocument()
+  })
+
+  it('renders BehavioralSignalsCard gracefully when data sufficiency is INSUFFICIENT', async () => {
+    vi.spyOn(personalizationService, 'getBehavioralSignals').mockResolvedValue({
+      data_sufficiency: 'INSUFFICIENT',
+      transaction_count: 0,
+      analyzed_period_months: 1,
+      typical_transaction_amount: '0.00',
+      average_transaction_amount: '0.00',
+      calculated_large_threshold: '2000.00',
+      frequent_merchants: [],
+      frequent_categories: [],
+      spending_timing: {
+        weekend_spend_percentage: 0,
+        weekday_spend_percentage: 0,
+        month_start_spend_percentage: 0,
+        month_mid_spend_percentage: 0,
+        month_end_spend_percentage: 0,
+        timing_observation: 'Insufficient transaction records to determine reliable timing patterns.',
+      },
+      signals_summary: 'Add more transactions to unlock deeper behavioral personalization.',
+      generated_at: '2026-10-05T12:00:00Z',
+    })
+
+    renderWithClient(<BehavioralSignalsCard />)
+
+    expect(await screen.findByTestId('behavioral-signals-card')).toBeInTheDocument()
+    expect(screen.getByText('INSUFFICIENT Evidence')).toBeInTheDocument()
+    expect(screen.getByText('No recurrent merchant patterns detected yet.')).toBeInTheDocument()
+    expect(screen.getByText('Insufficient expense transactions recorded.')).toBeInTheDocument()
+  })
+
+  it('renders error card when profile fails to load', async () => {
+    vi.spyOn(personalizationService, 'getProfile').mockRejectedValue(new Error('Network error'))
+
+    renderWithClient(<PersonalizationSettingsForm />)
+
+    expect(await screen.findByText('Could not load preferences')).toBeInTheDocument()
+  })
 })
+
