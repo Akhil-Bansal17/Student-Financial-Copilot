@@ -9,6 +9,7 @@ from app.models.notification import Notification
 from app.models.notification_preference import NotificationPreference
 from app.models.account import ConnectedAccount
 from app.models.recurring_expense import RecurringExpense
+from app.models.transaction import Transaction
 from app.schemas.notification import (
     NotificationType,
     NotificationPriority,
@@ -566,6 +567,47 @@ class SpendingAlertRule(BaseAlertRule):
                             },
                         )
                     )
+
+            # 3. Personalized Large Transaction Alert (Phase 16)
+            try:
+                from app.services.personalization_service import PersonalizationService
+                effective_cfg = PersonalizationService.get_effective_preferences(db, user.id)
+                threshold = effective_cfg.effective_large_transaction_threshold
+                since_date = now - datetime.timedelta(days=7)
+                large_txs = (
+                    db.query(Transaction)
+                    .filter(
+                        Transaction.user_id == user.id,
+                        Transaction.transaction_type == "expense",
+                        Transaction.transaction_date >= since_date,
+                        Transaction.amount > threshold,
+                    )
+                    .order_by(Transaction.transaction_date.desc())
+                    .all()
+                )
+                for tx in large_txs:
+                    merchant_label = tx.normalized_merchant or tx.merchant or tx.description or "Expense"
+                    candidates.append(
+                        AlertCandidate(
+                            notification_type=NotificationType.SPENDING_LARGE_TRANSACTION.value,
+                            priority=NotificationPriority.MEDIUM.value,
+                            title=f"Large Transaction Detected: {merchant_label}",
+                            message=f"Transaction of ₹{tx.amount:,.2f} exceeds your alert threshold of ₹{threshold:,.2f}.",
+                            category=self.category,
+                            entity_type="transaction",
+                            entity_id=str(tx.id),
+                            action_url="/activity",
+                            dedupe_key=f"large_tx:{user.id}:{tx.id}",
+                            expires_at=now + datetime.timedelta(days=14),
+                            metadata_json={
+                                "transaction_id": tx.id,
+                                "amount": str(tx.amount),
+                                "threshold": str(threshold),
+                            },
+                        )
+                    )
+            except Exception as exc:
+                logger.warning(f"Error evaluating large transaction alerts for user {user.id}: {exc}")
 
         except Exception as exc:
             logger.warning(f"Error evaluating spending alerts for user {user.id}: {exc}")
