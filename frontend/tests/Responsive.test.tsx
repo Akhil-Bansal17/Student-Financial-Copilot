@@ -5,8 +5,10 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { App } from '@/App'
 import { ActivityPage } from '@/pages/ActivityPage'
+import { PersonalizationPage } from '@/pages/PersonalizationPage'
 import { tokenStorage } from '@/services/authService'
 import { transactionService } from '@/services/transactionService'
+import { personalizationService } from '@/services/personalizationService'
 import { mockAuthenticatedUser } from './testUtils'
 
 describe('Responsive Shell & Mobile Navigation', () => {
@@ -19,6 +21,17 @@ describe('Responsive Shell & Mobile Navigation', () => {
       total: 0,
       limit: 20,
       offset: 0,
+    })
+    vi.spyOn(personalizationService, 'getProfile').mockResolvedValue({
+      id: 1,
+      user_id: 1,
+      is_personalization_enabled: true,
+      alert_sensitivity: 'BALANCED',
+      financial_priority: 'BUILD_BUFFER',
+      large_transaction_threshold: null,
+      recurring_alert_days_before: 3,
+      created_at: '2026-10-05T00:00:00Z',
+      updated_at: '2026-10-05T00:00:00Z',
     })
   })
 
@@ -121,6 +134,45 @@ describe('Responsive Shell & Mobile Navigation', () => {
 
       expect(screen.getByPlaceholderText(/Search merchant, description, category/i)).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /Filters/i })).toBeInTheDocument()
+      unmount()
+    }
+  })
+
+  it('renders PersonalizationPage across mobile and desktop viewports (320px, 375px, 430px, 768px, 1024px)', async () => {
+    const viewports = [
+      { width: 320, height: 568 },
+      { width: 375, height: 667 },
+      { width: 430, height: 932 },
+      { width: 768, height: 1024 },
+      { width: 1024, height: 768 },
+    ]
+
+    for (const vp of viewports) {
+      window.innerWidth = vp.width
+      window.innerHeight = vp.height
+      window.dispatchEvent(new Event('resize'))
+
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      })
+
+      const { unmount } = render(
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <BrowserRouter>
+              <PersonalizationPage />
+            </BrowserRouter>
+          </AuthProvider>
+        </QueryClientProvider>
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('personalization-page')).toBeInTheDocument()
+      })
+
+      expect(screen.getByText('Financial Personalization & Adaptive Intelligence')).toBeInTheDocument()
+      expect(screen.getByTestId('tab-settings')).toBeInTheDocument()
+      expect(screen.getByTestId('tab-signals')).toBeInTheDocument()
       unmount()
     }
   })
